@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugin id="outsystems-experts-plugin-forgerockplugin" version="1.0.0"
+    xmlns="http://apache.org/cordova/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>ForgeRockPlugin</name>
+    <js-module name="ForgeRockPlugin" src="www/forgerockplugin.js">
+        <clobbers target="cordova.plugins.outsystemsexperts.forgerockplugin" />
+    </js-module>
+    <platform name="android">
+        <config-file parent="/*" target="res/xml/config.xml">
+            <feature name="ForgeRockPlugin">
+                <param name="android-package" value="com.outsystems.experts.forgerockplugin.ForgeRockPlugin" />
+            </feature>
+        </config-file>
+        <config-file parent="/*" target="AndroidManifest.xml" />
+        <source-file src="src/android/ForgeRockPlugin.java" target-dir="src/com/outsystems/experts/forgerockplugin" />
+        
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+        </config-file>
+        <framework src="src/android/forgerock.gradle" custom="true" type="gradleReference" />
+    </platform>
+    <platform name="ios">
+        <config-file parent="/*" target="config.xml">
+            <feature name="ForgeRockPlugin">
+                <param name="ios-package" value="com.outsystems.experts.forgerockplugin" />
+            </feature>
+        </config-file>
+        <source-file src="src/ios/ForgeRockPlugin.m" />
+    </platform>
+</plugin>
