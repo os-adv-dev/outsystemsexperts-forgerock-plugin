@@ -21,11 +21,19 @@
         <framework src="src/android/forgerock.gradle" custom="true" type="gradleReference" />
     </platform>
     <platform name="ios">
+        <!-- Hooks for Swift Support -->
+        <hook type="before_plugin_install" src="hooks/install_prerequisites.js"/>
+        <hook type="after_plugin_add" src="hooks/add_swift_support.js" />
+        <podspec>
+          <pods use-frameworks="true">
+            <pod name="FRAuthenticator" />
+          </pods>
+        </podspec>
         <config-file parent="/*" target="config.xml">
             <feature name="ForgeRockPlugin">
                 <param name="ios-package" value="com.outsystems.experts.forgerockplugin" />
             </feature>
         </config-file>
-        <source-file src="src/ios/ForgeRockPlugin.m" />
+        <source-file src="src/ios/ForgeRockPlugin.swift" />
     </platform>
 </plugin>
