@@ -31,7 +31,7 @@
         </podspec>
         <config-file parent="/*" target="config.xml">
             <feature name="ForgeRockPlugin">
-                <param name="ios-package" value="com.outsystems.experts.forgerockplugin" />
+                <param name="ios-package" value="ForgeRockPlugin" />
             </feature>
         </config-file>
         <source-file src="src/ios/ForgeRockPlugin.swift" />

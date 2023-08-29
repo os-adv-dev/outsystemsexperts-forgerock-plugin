@@ -11,7 +11,6 @@ import FRAuthenticator
 class ForgeRockPlugin: CDVPlugin {
     var command: CDVInvokedUrlCommand?
     
-    
     @objc(start:)
     func start(_ command: CDVInvokedUrlCommand){
         FRAClient.start()
@@ -22,8 +21,8 @@ class ForgeRockPlugin: CDVPlugin {
     func registerForRemoteNotifications(_ command: CDVInvokedUrlCommand){
         if let fcmToken = command.arguments[0] as? String {
             
+            self.sendPluginResult(status: CDVCommandStatus_OK, message: "Registered for remote notifications")
             
-            sendPluginResult(status: CDVCommandStatus_OK, message: "Registered for remote notifications")
         } else {
             sendPluginResult(status: CDVCommandStatus_ERROR, message: "Failed to get FCM token from arguments")
         }
@@ -31,10 +30,17 @@ class ForgeRockPlugin: CDVPlugin {
 
     @objc(createMechanismFromUri:)
     func createMechanismFromUri(_ command: CDVInvokedUrlCommand){
-        if let uri = command.arguments[0] as? String {
+        if let url = command.arguments[0] as? URL {
+            guard let fraClient = FRAClient.shared else {
+                print("FRAuthenticator SDK is not initialized")
+                return
+            }
+            fraClient.createMechanismFromUri(uri: url, onSuccess: { (mechanism) in
+                self.sendPluginResult(status: CDVCommandStatus_OK, message: "Mechanism created from URI")
+            }, onError: { (error) in
+                self.sendPluginResult(status: CDVCommandStatus_ERROR, message: error.localizedDescription)
+            })
             
-            
-            sendPluginResult(status: CDVCommandStatus_OK, message: "Mechanism created from URI")
         } else {
             sendPluginResult(status: CDVCommandStatus_ERROR, message: "Failed to get URI from arguments")
         }
@@ -42,6 +48,7 @@ class ForgeRockPlugin: CDVPlugin {
 
     @objc(getCurrentCode:)
     func getCurrentCode(_ command: CDVInvokedUrlCommand){
+        
         
         
         sendPluginResult(status: CDVCommandStatus_OK, message: "{\"code\":\"123456\"}")
