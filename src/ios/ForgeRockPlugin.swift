@@ -30,9 +30,13 @@ class ForgeRockPlugin: CDVPlugin {
 
     @objc(createMechanismFromUri:)
     func createMechanismFromUri(_ command: CDVInvokedUrlCommand){
-        if let url = command.arguments[0] as? URL {
+        if let urlString = command.arguments[0] as? String {
+            guard let url = URL(string: urlString) else {
+                sendPluginResult(status: CDVCommandStatus_ERROR, message: "Invalid URI")
+                return
+            }
             guard let fraClient = FRAClient.shared else {
-                print("FRAuthenticator SDK is not initialized")
+                sendPluginResult(status: CDVCommandStatus_ERROR, message: "FRAuthenticator SDK is not initialized")
                 return
             }
             fraClient.createMechanismFromUri(uri: url, onSuccess: { (mechanism) in
