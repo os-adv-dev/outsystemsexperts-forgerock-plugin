@@ -1,6 +1,16 @@
 package com.outsystems.experts.forgerockplugin;
 
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+
+import com.google.firebase.messaging.FirebaseMessagingService;
+import com.google.firebase.messaging.RemoteMessage;
+import com.outsystems.experts.forgerocksample.MainActivity;
 
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
@@ -10,6 +20,9 @@ import org.forgerock.android.auth.Logger;
 import org.forgerock.android.auth.Mechanism;
 import org.forgerock.android.auth.OathMechanism;
 import org.forgerock.android.auth.OathTokenCode;
+import org.forgerock.android.auth.PushMechanism;
+import org.forgerock.android.auth.PushNotification;
+import org.forgerock.android.auth.exception.InvalidNotificationException;
 import org.forgerock.android.auth.exception.OathMechanismException;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -23,8 +36,13 @@ import org.forgerock.android.auth.exception.AuthenticatorException;
  * This class echoes a string called from JavaScript.
  */
 public class ForgeRockPlugin extends CordovaPlugin {
-    FRAClient fraClientInstance;
+    public static ForgeRockPlugin instance;
     OathMechanism oathMechanism;
+    FRAClient fraClient;
+
+    private static PushNotification notification;
+    private static Mechanism mechanism;
+
     private static final String TAG = "ForgeRockPlugin";
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -49,18 +67,78 @@ public class ForgeRockPlugin extends CordovaPlugin {
 
     private void start(CallbackContext callbackContext) {
         try {
-            fraClientInstance = new FRAClient.FRAClientBuilder()
+            fraClient = new FRAClient.FRAClientBuilder()
                     .withContext(this.cordova.getContext())
                     .start();
+            instance = this;
+            if (mechanism!=null && notification!=null){
+                handleNotification(notification);
+            }
             callbackContext.success();
         } catch (AuthenticatorException e) {
             callbackContext.error("Error starting forge rock. Error was" + e.getMessage());
         }
     }
 
+    private void handleNotification(PushNotification pushNotification){
+        showConfirm(pushNotification);
+    }
+
+    public void handleNotification(RemoteMessage message){
+        try {
+            PushNotification notification = fraClient.handleMessage(message);
+            showConfirm(notification);
+        } catch (InvalidNotificationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void showConfirm(PushNotification notification){
+        cordova.getActivity().runOnUiThread(new Runnable() {
+            public void run() {
+                new AlertDialog.Builder(cordova.getContext())
+                        .setTitle("OutSystems app")
+                        .setMessage("Would you like to accept this request?")
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(android.R.string.yes, (dialogInterface, i) ->{
+                            Toast.makeText(cordova.getContext(), "Accepted", Toast.LENGTH_SHORT).show();
+                            notification.accept(new FRAListener<Void>() {
+                                @Override
+                                public void onSuccess(Void result) {
+                                    Log.d(TAG, "notification success");
+                                }
+
+                                @Override
+                                public void onException(Exception e) {
+                                    Log.d(TAG, "notification exception");
+                                }
+                            });
+                        })
+                        .setNegativeButton(android.R.string.no, (dialogInterface, i) -> {
+                            Toast.makeText(cordova.getContext(), "Declined", Toast.LENGTH_SHORT).show();
+                            notification.deny(new FRAListener<Void>() {
+                                @Override
+                                public void onSuccess(Void result) {
+                                    Log.d(TAG, "notification success");
+                                }
+
+                                @Override
+                                public void onException(Exception e) {
+                                    Log.d(TAG, "notification exception");
+                                }
+                            });
+                        }).show();
+
+            }
+        });
+    }
+
     private void registerForRemoteNotifications(String fcmToken, CallbackContext callbackContext){
         try {
-            fraClientInstance.registerForRemoteNotifications(fcmToken);
+            fraClient.registerForRemoteNotifications(fcmToken);
+            cordova.getContext().getSharedPreferences("_", Context.MODE_PRIVATE).edit().putString("fcm_token", fcmToken).apply();
+            Log.d(TAG, "new token received" + fcmToken);
+            //FCM myFirebase = new MyFirebase();
             callbackContext.success();
         } catch (AuthenticatorException e) {
             callbackContext.error("Error registering for remote notifications. Error was" + e.getMessage());
@@ -80,11 +158,13 @@ public class ForgeRockPlugin extends CordovaPlugin {
     }
 
     private void createMechanismFromUri(String uri, CallbackContext callbackContext) {
-        fraClientInstance.createMechanismFromUri(uri, new FRAListener<Mechanism>() {
+
+        fraClient.createMechanismFromUri(uri, new FRAListener<Mechanism>() {
             @Override
             public void onSuccess(Mechanism mechanism) {
                 Log.d("ForgeRockPlugin", "mechanism");
-                oathMechanism = ((OathMechanism) mechanism);
+                //oathMechanism = ((OathMechanism) mechanism);
+                PushMechanism push = ((PushMechanism) mechanism);
                 // called when device enrollment was successful.
                 callbackContext.success();
             }
@@ -115,4 +195,15 @@ public class ForgeRockPlugin extends CordovaPlugin {
         }
         return jsonObject.toString();
     }
+
+    public static Intent setupIntent(Context context,
+                                     Class<? extends MainActivity> notificationActivity,
+                                     PushNotification pushNotification, Mechanism pushMechanism) {
+        Intent intent = new Intent(context, notificationActivity);
+        notification = pushNotification;
+        mechanism = pushMechanism;
+        return intent;
+    }
+
+
 }

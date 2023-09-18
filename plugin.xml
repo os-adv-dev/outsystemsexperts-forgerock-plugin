@@ -18,6 +18,17 @@
         <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
         </config-file>
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            
+            <service
+                android:name="com.outsystems.experts.forgerockplugin.FcmService"
+                android:enabled="true"
+                android:exported="false">
+                <intent-filter>
+                    <action android:name="com.google.firebase.MESSAGING_EVENT" />
+                </intent-filter>
+            </service>
+        </config-file>
         <framework src="src/android/forgerock.gradle" custom="true" type="gradleReference" />
     </platform>
     <platform name="ios">
