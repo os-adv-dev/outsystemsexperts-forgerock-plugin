@@ -46,7 +46,7 @@ class ForgeRockPlugin: CDVPlugin {
     }
     
     @objc
-    func handleReceivedPushNotification(notification: Notification){
+    func handleReceivedPushNotification(_ notification: Notification){
         print("***❤️ handleReceivedPushNotification")
         if let callbackId = self.didReceivePnCallbackId {
             print("***👉 callbackId: \(callbackId)")
@@ -147,7 +147,7 @@ class ForgeRockPlugin: CDVPlugin {
     }
     
     @objc
-    func handleAcceptCallback(notification: Notification){
+    func handleAcceptCallback(_ notification: Notification){
         removeObservers()
         if let callbackId = self.callbackId{
             if let errorMessage = notification.userInfo?["errorMessage"] as? String {
@@ -164,7 +164,7 @@ class ForgeRockPlugin: CDVPlugin {
     }
     
     @objc
-    func handleDenyCallback(notification: Notification){
+    func handleDenyCallback(_ notification: Notification){
         removeObservers()
         if let callbackId = self.callbackId{
             if let errorMessage = notification.userInfo?["errorMessage"] as? String {
