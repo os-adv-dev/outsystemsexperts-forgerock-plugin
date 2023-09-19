@@ -6,6 +6,7 @@
     <js-module name="ForgeRockPlugin" src="www/forgerockplugin.js">
         <clobbers target="cordova.plugins.outsystemsexperts.forgerockplugin" />
     </js-module>
+    <dependency id="com.outsystems.firebase.cloudmessaging" url="https://github.com/OutSystems/cordova-outsystems-firebase-cloud-messaging.git#2.0.0"/>
     <platform name="android">
         <config-file parent="/*" target="res/xml/config.xml">
             <feature name="ForgeRockPlugin">
@@ -22,6 +23,7 @@
     </platform>
     <platform name="ios">
         <!-- Hooks for Swift Support -->
+        <hook type="before_plugin_install" src="hooks/comment_objc_class.js"/>
         <hook type="before_plugin_install" src="hooks/install_prerequisites.js"/>
         <hook type="after_plugin_add" src="hooks/add_swift_support.js" />
         <podspec>
@@ -34,6 +36,8 @@
                 <param name="ios-package" value="ForgeRockPlugin" />
             </feature>
         </config-file>
+        <header-file src="src/ios/AppDelegate+ForgeRock.h" />
+        <source-file src="src/ios/AppDelegate+ForgeRock.m" />
         <source-file src="src/ios/ForgeRockPlugin.swift" />
     </platform>
 </plugin>

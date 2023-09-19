@@ -10,7 +10,14 @@ module.exports = {
     registerForRemoteNotifications: function(fcmToken, success, error){
         exec(success, error, 'ForgeRockPlugin', 'registerForRemoteNotifications', [fcmToken]);
     },
-    getCurrentCode: function(success, error){
-        exec(success, error, 'ForgeRockPlugin', 'getCurrentCode');
+    acceptAction: function(success, error){
+        exec(success, error, 'ForgeRockPlugin', 'acceptAction');
+    },
+    denyAction: function(success, error){
+        exec(success, error, 'ForgeRockPlugin', 'denyAction');
+    },
+    didReceivePushNotificationSetCallback: function(success, error){
+        exec(success, error, 'ForgeRockPlugin', 'didReceivePushNotificationSetCallback');
     }
+
 }
