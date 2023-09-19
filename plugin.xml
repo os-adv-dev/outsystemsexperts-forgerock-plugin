@@ -39,5 +39,7 @@
         <header-file src="src/ios/AppDelegate+ForgeRock.h" />
         <source-file src="src/ios/AppDelegate+ForgeRock.m" />
         <source-file src="src/ios/ForgeRockPlugin.swift" />
+        <source-file src="src/ios/ForgeRockHelper.swift" />
+
     </platform>
 </plugin>
