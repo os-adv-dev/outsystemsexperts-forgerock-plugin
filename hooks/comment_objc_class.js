@@ -1,10 +1,23 @@
 const fs = require('fs');
 const path = require('path');
 
+function getProjectName() {
+    var config = fs.readFileSync('config.xml').toString();
+    var parseString = require('xml2js').parseString;
+    var name;
+    parseString(config, function (err, result) {
+        name = result.widget.name.toString();
+        const r = /\B\s+|\s+\B/g;  //Removes trailing and leading spaces
+        name = name.replace(r, '');
+    });
+    return name || null;
+}
+
 function commentObjCFile(context) {
     return new Promise((resolve, reject) => {
         const APP_ROOT = context.opts.projectRoot;
-        const PLUGIN_DIR = path.join(APP_ROOT, 'plugins','com.outsystems.firebase.cloudmessaging', 'src', 'ios');
+        const PROJECT_NAME = getProjectName();
+        const PLUGIN_DIR = path.join(APP_ROOT, 'platforms','ios', PROJECT_NAME,'Plugins','com.outsystems.firebase.cloudmessaging');
         const OBJC_FILE_NAME = 'AppDelegate+OSFirebaseCloudMessaging.m';
         const HEADER_FILE_NAME = 'AppDelegate+OSFirebaseCloudMessaging.h';
 
