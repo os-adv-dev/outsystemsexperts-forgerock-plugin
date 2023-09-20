@@ -59,8 +59,8 @@ cordova.plugins.outsystemsexperts.forgerockplugin.didReceivePushNotificationSetC
 
 ## Authors
 
-- [André Gonçalves](https://github.com/agoncalvesos)
-- [André Grillo](https://github.com/andregrillo)
+- [André Gonçalves](https://github.com/agoncalvesos) - OutSystems
+- [André Grillo](https://github.com/andregrillo) - OutSystems
 
 
 ## License
