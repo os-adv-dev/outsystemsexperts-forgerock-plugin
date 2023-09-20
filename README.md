@@ -4,9 +4,9 @@ A Cordova plugin that provides integration with ForgeRock services.
 
 ## Installation
 
-\```bash
+```bash
 cordova plugin add https://github.com/os-adv-dev/outsystemsexperts-forgerock-plugin.git
-\```
+```
 
 ## Usage
 
@@ -14,39 +14,39 @@ The ForgeRockPlugin provides several methods to interact with ForgeRock services
 
 ### 1. Start the ForgeRock service
 
-\```javascript
+```javascript
 cordova.plugins.outsystemsexperts.forgerockplugin.start(successCallback, errorCallback);
-\```
+```
 
 ### 2. Create a mechanism from a URI
 
-\```javascript
+```javascript
 cordova.plugins.outsystemsexperts.forgerockplugin.createMechanismFromUri(uri, successCallback, errorCallback);
-\```
+```
 
 ### 3. Register for remote notifications
 
-\```javascript
+```javascript
 cordova.plugins.outsystemsexperts.forgerockplugin.registerForRemoteNotifications(fcmToken, successCallback, errorCallback);
-\```
+```
 
 ### 4. Accept action
 
-\```javascript
+```javascript
 cordova.plugins.outsystemsexperts.forgerockplugin.acceptAction(successCallback, errorCallback);
-\```
+```
 
 ### 5. Deny action
 
-\```javascript
+```javascript
 cordova.plugins.outsystemsexperts.forgerockplugin.denyAction(successCallback, errorCallback);
-\```
+```
 
 ### 6. Set a callback for push notifications
 
-\```javascript
+```javascript
 cordova.plugins.outsystemsexperts.forgerockplugin.didReceivePushNotificationSetCallback(successCallback, errorCallback);
-\```
+```
 
 ## Dependencies
 
