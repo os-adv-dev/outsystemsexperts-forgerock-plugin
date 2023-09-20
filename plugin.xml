@@ -6,6 +6,7 @@
     <js-module name="ForgeRockPlugin" src="www/forgerockplugin.js">
         <clobbers target="cordova.plugins.outsystemsexperts.forgerockplugin" />
     </js-module>
+    <dependency id="com.outsystems.firebase.cloudmessaging" url="https://github.com/OutSystems/cordova-outsystems-firebase-cloud-messaging.git#2.0.0"/>
     <platform name="android">
         <config-file parent="/*" target="res/xml/config.xml">
             <feature name="ForgeRockPlugin">
@@ -32,11 +33,24 @@
         <framework src="src/android/forgerock.gradle" custom="true" type="gradleReference" />
     </platform>
     <platform name="ios">
+        <!-- Hooks for Swift Support -->
+        <hook type="before_prepare" src="hooks/comment_objc_class.js"/>
+        <hook type="before_plugin_install" src="hooks/install_prerequisites.js"/>
+        <hook type="after_plugin_add" src="hooks/add_swift_support.js" />
+        <podspec>
+          <pods use-frameworks="true">
+            <pod name="FRAuthenticator" />
+          </pods>
+        </podspec>
         <config-file parent="/*" target="config.xml">
             <feature name="ForgeRockPlugin">
-                <param name="ios-package" value="com.outsystems.experts.forgerockplugin" />
+                <param name="ios-package" value="ForgeRockPlugin" />
             </feature>
         </config-file>
-        <source-file src="src/ios/ForgeRockPlugin.m" />
+        <header-file src="src/ios/AppDelegate+ForgeRock.h" />
+        <source-file src="src/ios/AppDelegate+ForgeRock.m" />
+        <source-file src="src/ios/ForgeRockPlugin.swift" />
+        <source-file src="src/ios/ForgeRockHelper.swift" />
+
     </platform>
 </plugin>
