@@ -48,11 +48,8 @@ public class ForgeRockHelper: NSObject {
         // Once you receive the remote notification, handle it with FRAPushHandler to get the PushNotification object.
         // If RemoteNotification does not contain the expected payload structured from AM, the Authenticator module does not return the PushNotification object.
         if let notification = FRAPushHandler.shared.application(application, didReceiveRemoteNotification: userInfo) {
-            // With the PushNotification object, you can either accept or deny
             self.notification = notification
             self.completionHandler = completionHandler
-            
-            
             
             //Was the app launched due to a push notification?
             let launchedFromPush = UserDefaults.standard.bool(forKey: "launchedFromPushNotification")
@@ -62,18 +59,8 @@ public class ForgeRockHelper: NSObject {
             } else {
                 NotificationCenter.default.post(name: .didReceivePushNotificationCallback, object: nil, userInfo: userInfo)
             }
-            
-//                        notification.accept(onSuccess: {
-//                            // Handle success here
-//                            print("***👍 notification.accept: \(userInfo)")
-//                            completionHandler(.newData)
-//                        }) { (error) in
-//                            // Handle error here
-//                            print("***❌ didReceiveRemoteNotification: \(error.localizedDescription)")
-//                            completionHandler(.failed)
-//                        }
+          }
         } else {
-            //Tratar aqui as push notifications normais!
             print("***🚨 Push notification: no data received")
             completionHandler(.noData)
         }
@@ -81,7 +68,6 @@ public class ForgeRockHelper: NSObject {
     
     @objc
     public func handleAcceptNotification() {
-        //MARK: TODO Check if notification is nil and send the callback accordingly
         self.notification?.accept(onSuccess: {
             print("***👍 notification.accept ✅")
             NotificationCenter.default.post(name: .acceptNotificationCallback, object: nil)
