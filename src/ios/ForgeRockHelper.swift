@@ -59,11 +59,10 @@ public class ForgeRockHelper: NSObject {
             } else {
                 NotificationCenter.default.post(name: .didReceivePushNotificationCallback, object: nil, userInfo: userInfo)
             }
-          }
-        } else {
+          } else {
             print("***🚨 Push notification: no data received")
             completionHandler(.noData)
-        }
+          }
     }
     
     @objc
