@@ -1,6 +1,7 @@
 package com.outsystems.experts.forgerockplugin;
 
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -32,6 +33,10 @@ import org.json.JSONObject;
 
 import org.forgerock.android.auth.FRAClient;
 import org.forgerock.android.auth.exception.AuthenticatorException;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
 
 
 /**
@@ -69,6 +74,10 @@ public class ForgeRockPlugin extends CordovaPlugin {
         } else if(action.equals("didReceivePushNotificationSetCallback")){
             this.didReceivePushNotificationSetCallback(callbackContext);
             return true;
+        } else if(action.equals("setNativeNotification")){
+            Boolean isSet = args.getBoolean(0);
+            this.setNativeNotification(isSet, callbackContext);
+            return true;
         }
         
         return false;
@@ -88,6 +97,21 @@ public class ForgeRockPlugin extends CordovaPlugin {
             callbackContext.error("Error starting forge rock. Error was" + e.getMessage());
         }
     }
+
+    private void setNativeNotification(Boolean isSet, CallbackContext callbackContext) {
+        try {
+            SharedPreferences sharedPreferences = cordova.getContext().getSharedPreferences("_", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+
+            editor.putBoolean("nativeNotificationSet", isSet);
+            editor.apply();
+
+            callbackContext.success();
+        } catch (Exception e) {
+            callbackContext.error("Error: " + e.getMessage());
+        }
+    }
+
 
     void handleNotification(PushNotification pushNotification){
         if (didReceivePnCallbackContext != null) {
@@ -319,14 +343,22 @@ public class ForgeRockPlugin extends CordovaPlugin {
     }
 
     //TODO! Check
-//    public static Intent setupIntent(Context context,
-//                                     Class<? extends MainActivity> notificationActivity,
-//                                     PushNotification pushNotification, Mechanism pushMechanism) {
-//        Intent intent = new Intent(context, notificationActivity);
-//        notification = pushNotification;
-//        mechanism = pushMechanism;
-//        return intent;
-//    }
+    public static Intent setupIntent(Context context,
+                                     Class<? extends MainActivity> notificationActivity,
+                                     PushNotification pushNotification, Mechanism pushMechanism) {
+        Intent intent = new Intent(context, notificationActivity);
+        notification = pushNotification;
+        mechanism = pushMechanism;
+        return intent;
+    }
 
+    public static class ForgeRockReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Handle the received intent here
+        }
+    }
 
 }
+
+
