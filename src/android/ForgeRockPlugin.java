@@ -3,6 +3,7 @@ package com.outsystems.experts.forgerockplugin;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -15,6 +16,7 @@ import com.outsystems.experts.forgerocksample.MainActivity;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
 
+import org.apache.cordova.PluginResult;
 import org.forgerock.android.auth.FRAListener;
 import org.forgerock.android.auth.Logger;
 import org.forgerock.android.auth.Mechanism;
@@ -39,6 +41,7 @@ public class ForgeRockPlugin extends CordovaPlugin {
     public static ForgeRockPlugin instance;
     OathMechanism oathMechanism;
     FRAClient fraClient;
+    CallbackContext  didReceivePnCallbackContext;
 
     private static PushNotification notification;
     private static Mechanism mechanism;
@@ -57,8 +60,14 @@ public class ForgeRockPlugin extends CordovaPlugin {
             String uri = args.getString(0);
             this.createMechanismFromUri(uri, callbackContext);
             return true;
-        } else if(action.equals("getCurrentCode")){
-            this.getCurrentCode(callbackContext);
+        }  else if(action.equals("acceptAction")){
+            this.acceptAction(callbackContext);
+            return true;
+        } else if(action.equals("denyAction")){
+            this.denyAction(callbackContext);
+            return true;
+        } else if(action.equals("didReceivePushNotificationSetCallback")){
+            this.didReceivePushNotificationSetCallback(callbackContext);
             return true;
         }
         
@@ -80,16 +89,129 @@ public class ForgeRockPlugin extends CordovaPlugin {
         }
     }
 
-    private void handleNotification(PushNotification pushNotification){
-        showConfirm(pushNotification);
+    void handleNotification(PushNotification pushNotification){
+        if (didReceivePnCallbackContext != null) {
+            PluginResult result = new PluginResult(PluginResult.Status.OK);
+            result.setKeepCallback(true);
+            didReceivePnCallbackContext.sendPluginResult(result);
+        }
     }
 
     public void handleNotification(RemoteMessage message){
         try {
-            PushNotification notification = fraClient.handleMessage(message);
-            showConfirm(notification);
+            notification = fraClient.handleMessage(message);
+            if (didReceivePnCallbackContext != null) {
+                PluginResult result = new PluginResult(PluginResult.Status.OK);
+                result.setKeepCallback(true);
+                didReceivePnCallbackContext.sendPluginResult(result);
+            }
         } catch (InvalidNotificationException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+
+    private void acceptAction(final CallbackContext callbackContext) {
+        try {
+            notification.accept(new FRAListener<Void>() {
+                @Override
+                public void onSuccess(Void result) {
+                    Log.d(TAG, ">***✅ Accept notification success");
+                    notification = null;
+
+//                    PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, "Accept Action Successful");
+//                    pluginResult.setKeepCallback(true); // This will keep the callback
+//                    callbackContext.sendPluginResult(pluginResult);
+                    callbackContext.success();
+                }
+
+                @Override
+                public void onException(Exception e) {
+                    notification = null;
+                    Log.d(TAG, ">***❌ Accept notification exception");
+
+//                    PluginResult pluginResult = new PluginResult(PluginResult.Status.ERROR, "Error: " + e.getMessage());
+//                    pluginResult.setKeepCallback(true); // This will keep the callback
+//                    callbackContext.sendPluginResult(pluginResult);
+                    callbackContext.error(e.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            callbackContext.error("Error accepting action. Error: " + e.getMessage());
+        }
+    }
+
+
+    private void denyAction(final CallbackContext callbackContext) {
+        try {
+            notification.deny(new FRAListener<Void>() {
+                @Override
+                public void onSuccess(Void result) {
+                    Log.d(TAG, ">***✅ Deny notification success");
+
+//                    PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, "Deny Action Successful");
+//                    pluginResult.setKeepCallback(true); // This will keep the callback
+//                    callbackContext.sendPluginResult(pluginResult);
+                    callbackContext.success();
+                }
+
+                @Override
+                public void onException(Exception e) {
+                    Log.d(TAG, ">***❌ Deny notification exception");
+
+//                    PluginResult pluginResult = new PluginResult(PluginResult.Status.ERROR, "Error: " + e.getMessage());
+//                    pluginResult.setKeepCallback(true); // This will keep the callback
+//                    callbackContext.sendPluginResult(pluginResult);
+                    callbackContext.error(e.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            callbackContext.error("Error accepting action. Error: " + e.getMessage());
+        }
+    }
+
+
+    private void didReceivePushNotificationSetCallback(CallbackContext callbackContext) {
+        this.didReceivePnCallbackContext = callbackContext;
+
+        // Check if the app was opened by a PN click
+        SharedPreferences sharedPreferences = cordova.getContext().getSharedPreferences("_", Context.MODE_PRIVATE);
+        boolean launchedFromPush = sharedPreferences.getBoolean("launchedFromPush", false);
+
+        if (launchedFromPush) {
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putBoolean("launchedFromPush", false);
+            editor.apply();
+
+            if (callbackContext != null) {
+                PluginResult result = new PluginResult(PluginResult.Status.OK);
+                result.setKeepCallback(true); // This will keep the callback
+                callbackContext.sendPluginResult(result);
+            }
+        }
+    }
+
+
+    @Override
+    public void onResume(boolean multitasking) {
+        super.onResume(multitasking);
+
+        // Getting the activity's intent
+        Intent intent = cordova.getActivity().getIntent();
+        String action = intent.getAction();
+
+        // Check if the app was awakened by a push notification
+        String packageName = cordova.getActivity().getPackageName();
+        String actionToCheck = packageName + ".PUSH_NOTIFICATION";
+        if (actionToCheck.equals(action)) {
+
+            // The app was opened by a push notification click
+            Context context = cordova.getActivity().getApplicationContext();
+            SharedPreferences sharedPreferences = context.getSharedPreferences("_", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putBoolean("launchedFromPush", true);
+            editor.apply();
+
         }
     }
 
@@ -196,14 +318,15 @@ public class ForgeRockPlugin extends CordovaPlugin {
         return jsonObject.toString();
     }
 
-    public static Intent setupIntent(Context context,
-                                     Class<? extends MainActivity> notificationActivity,
-                                     PushNotification pushNotification, Mechanism pushMechanism) {
-        Intent intent = new Intent(context, notificationActivity);
-        notification = pushNotification;
-        mechanism = pushMechanism;
-        return intent;
-    }
+    //TODO! Check
+//    public static Intent setupIntent(Context context,
+//                                     Class<? extends MainActivity> notificationActivity,
+//                                     PushNotification pushNotification, Mechanism pushMechanism) {
+//        Intent intent = new Intent(context, notificationActivity);
+//        notification = pushNotification;
+//        mechanism = pushMechanism;
+//        return intent;
+//    }
 
 
 }

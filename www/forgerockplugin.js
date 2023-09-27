@@ -18,6 +18,9 @@ module.exports = {
     },
     didReceivePushNotificationSetCallback: function(success, error){
         exec(success, error, 'ForgeRockPlugin', 'didReceivePushNotificationSetCallback');
+    },
+    setNativeNotification: function(isSet, success, error){
+        exec(success, error, 'ForgeRockPlugin', 'setNativeNotification', [isSet]);
     }
 
 }

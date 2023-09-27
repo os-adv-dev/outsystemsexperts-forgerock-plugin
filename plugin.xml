@@ -15,10 +15,30 @@
         </config-file>
         <config-file parent="/*" target="AndroidManifest.xml" />
         <source-file src="src/android/ForgeRockPlugin.java" target-dir="src/com/outsystems/experts/forgerockplugin" />
+        <source-file src="src/android/FcmService.java" target-dir="src/com/outsystems/experts/forgerockplugin" />
         
         <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
         </config-file>
+            <config-file target="AndroidManifest.xml" parent="/manifest/application/activity[@android:name='MainActivity']">
+            <intent-filter>
+                <action android:name="com.outsystems.experts.forgerocksample.PUSH_NOTIFICATION" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </config-file>
+        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <receiver android:name="com.outsystems.experts.forgerockplugin.AcceptReceiver">
+                <intent-filter>
+                    <action android:name="com.outsystems.experts.forgerockplugin.ACCEPT_NOTIFICATION" />
+                </intent-filter>
+            </receiver>
+            <receiver android:name="com.outsystems.experts.forgerockplugin.DenyReceiver">
+                <intent-filter>
+                    <action android:name="com.outsystems.experts.forgerockplugin.DENY_NOTIFICATION" />
+                </intent-filter>
+            </receiver>
+        </config-file>
+
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             
             <service

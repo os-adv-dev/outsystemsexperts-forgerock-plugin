@@ -53,7 +53,8 @@ public class FcmService extends FirebaseMessagingService {
                     pushNotification = fraClient.handleMessage(message);
                     // If it's a valid Push message from AM and not expired, create a system notification
                     if(pushNotification != null && !pushNotification.isExpired()) {
-                        createSystemNotification(pushNotification);
+                        //createSystemNotification(pushNotification);
+                        ForgeRockPlugin.instance.handleNotification(pushNotification);
                     }
                     Log.d(TAG, "message handled");
             } catch (InvalidNotificationException e) {
@@ -68,21 +69,21 @@ public class FcmService extends FirebaseMessagingService {
      * Create system notification to display to user the Push request received
      * @param pushNotification the PushNotification object
      */
-    private void createSystemNotification(PushNotification pushNotification) {
-        int id = messageCount++;
-
-        Mechanism mechanism = fraClient.getMechanism(pushNotification);
-        Intent intent = ForgeRockPlugin.setupIntent(this, MainActivity.class,
-                pushNotification, mechanism);
-        String title = String.format("Login attempt from %1$s at %2$s",
-                mechanism.getAccountName(), mechanism.getIssuer());//TODO
-        String body = "Tap to log in";//TODO
-
-        Notification notification = generatePending(this, id, title, body, intent);
-
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        notificationManager.notify(id, notification);
-    }
+//    private void createSystemNotification(PushNotification pushNotification) {
+//        int id = messageCount++;
+//
+//        Mechanism mechanism = fraClient.getMechanism(pushNotification);
+//        Intent intent = ForgeRockPlugin.setupIntent(this, MainActivity.class,
+//                pushNotification, mechanism);
+//        String title = String.format("Login attempt from %1$s at %2$s",
+//                mechanism.getAccountName(), mechanism.getIssuer());//TODO
+//        String body = "Tap to log in";//TODO
+//
+//        Notification notification = generatePending(this, id, title, body, intent);
+//
+//        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+//        notificationManager.notify(id, notification);
+//    }
 
     @SuppressLint("UnspecifiedImmutableFlag")
     private Notification generatePending(Context context, int requestCode, String title, String message, Intent intent) {
