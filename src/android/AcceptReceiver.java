@@ -88,18 +88,7 @@ public class AcceptReceiver extends BroadcastReceiver {
 
                     NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
-                    //REMOVER
-                    if (notificationManager.areNotificationsEnabled()) {
-                        StatusBarNotification[] activeNotifications = notificationManager.getActiveNotifications();
-                        for (StatusBarNotification sbn : activeNotifications) {
-                            if (sbn.getId() == notificationId) {
-                                Log.d(TAG, "🤔 Notification with ID: " + notificationId + " is active.");
-                                break;
-                            } else {
-                                Log.d(TAG, "🤔 Notification NOT FOUND.");
-                            }
-                        }
-                    }
+
 
 
 

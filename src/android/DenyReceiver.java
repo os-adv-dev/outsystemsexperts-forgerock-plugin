@@ -69,7 +69,7 @@ public class DenyReceiver extends BroadcastReceiver {
 
         // Cancel the notification
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.cancel("1", notificationId);
+        notificationManager.cancel(notificationId);
 
         if (pushNotification != null) {
             pushNotification.deny(new FRAListener<Void>() {
@@ -81,30 +81,6 @@ public class DenyReceiver extends BroadcastReceiver {
                         Log.d(TAG, "✅ Successfully denied the notification.");
                     }
                     NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-
-                    //REMOVER
-                    if (notificationManager.areNotificationsEnabled()) {
-                        StatusBarNotification[] activeNotifications = notificationManager.getActiveNotifications();
-                        for (StatusBarNotification sbn : activeNotifications) {
-                            if (sbn.getId() == notificationId) {
-                                Log.d(TAG, "🤔 Notification with ID: " + notificationId + " is active.");
-                                break;
-                            } else {
-                                Log.d(TAG, "🤔 Notification NOT FOUND.");
-                            }
-                        }
-                    }
-
-
-                    if (notificationManager != null) {
-                        Log.d(TAG, "🤔 Attempting to cancel notification with ID: " + notificationId);
-                        notificationManager.cancel("1", notificationId);
-                        Log.d(TAG, "🤔 Cancel method called for notification with ID: " + notificationId);
-                    } else {
-                        Log.e(TAG, "🚨 NotificationManager is null.");
-                    }
-
-
                 }
 
                 @Override
