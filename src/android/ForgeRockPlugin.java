@@ -84,17 +84,15 @@ public class ForgeRockPlugin extends CordovaPlugin {
     }
 
     private void start(CallbackContext callbackContext) {
+        Log.d(TAG, "⭐️ Start CallbackId: " + callbackContext.getCallbackId());
         try {
             fraClient = new FRAClient.FRAClientBuilder()
                     .withContext(this.cordova.getContext())
                     .start();
             instance = this;
-            if (mechanism!=null && notification!=null){
-                handleNotification(notification);
-            }
             callbackContext.success();
         } catch (AuthenticatorException e) {
-            callbackContext.error("Error starting forge rock. Error was" + e.getMessage());
+            callbackContext.error("Error starting forge rock. Error was: " + e.getMessage());
         }
     }
 
@@ -114,6 +112,7 @@ public class ForgeRockPlugin extends CordovaPlugin {
 
 
     void handleNotification(PushNotification pushNotification){
+        Log.d(TAG, "⭐️ handleNotification-PushNotification CallbackId: " + didReceivePnCallbackContext.getCallbackId());
         if (didReceivePnCallbackContext != null) {
             PluginResult result = new PluginResult(PluginResult.Status.OK);
             result.setKeepCallback(true);
@@ -122,6 +121,7 @@ public class ForgeRockPlugin extends CordovaPlugin {
     }
 
     public void handleNotification(RemoteMessage message){
+        Log.d(TAG, "⭐️ handleNotification-RemoteMessage CallbackId: " + didReceivePnCallbackContext.getCallbackId());
         try {
             notification = fraClient.handleMessage(message);
             if (didReceivePnCallbackContext != null) {
@@ -197,21 +197,26 @@ public class ForgeRockPlugin extends CordovaPlugin {
 
     private void didReceivePushNotificationSetCallback(CallbackContext callbackContext) {
         this.didReceivePnCallbackContext = callbackContext;
+        Log.d(TAG, "🤔 just received a pushnotification");
 
         // Check if the app was opened by a PN click
         SharedPreferences sharedPreferences = cordova.getContext().getSharedPreferences("_", Context.MODE_PRIVATE);
         boolean launchedFromPush = sharedPreferences.getBoolean("launchedFromPush", false);
+        Log.d(TAG, "👉 launchedFromPush: " + launchedFromPush);
 
         if (launchedFromPush) {
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putBoolean("launchedFromPush", false);
+            editor.putBoolean("💡 launchedFromPush", false);
             editor.apply();
 
             if (callbackContext != null) {
+                Log.d(TAG, "👉 Callback sent");
                 PluginResult result = new PluginResult(PluginResult.Status.OK);
-                result.setKeepCallback(true); // This will keep the callback
+                result.setKeepCallback(true);
                 callbackContext.sendPluginResult(result);
             }
+        } else {
+            Log.d(TAG, "👉 Not launched from push!");
         }
     }
 
@@ -358,6 +363,8 @@ public class ForgeRockPlugin extends CordovaPlugin {
             // Handle the received intent here
         }
     }
+
+
 
 }
 
