@@ -8,6 +8,7 @@
     </js-module>
     <dependency id="com.outsystems.firebase.cloudmessaging" url="https://github.com/OutSystems/cordova-outsystems-firebase-cloud-messaging.git#2.0.0"/>
     <platform name="android">
+        <hook type="before_plugin_install" src="hooks/android_patch_mainactivity.js"/>
         <config-file parent="/*" target="res/xml/config.xml">
             <feature name="ForgeRockPlugin">
                 <param name="android-package" value="com.outsystems.experts.forgerockplugin.ForgeRockPlugin" />

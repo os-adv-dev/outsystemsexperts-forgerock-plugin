@@ -10,6 +10,9 @@ import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.ProcessLifecycleOwner;
+
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.google.gson.Gson;
@@ -20,6 +23,10 @@ import org.forgerock.android.auth.Mechanism;
 import org.forgerock.android.auth.PushNotification;
 import org.forgerock.android.auth.exception.AuthenticatorException;
 import org.forgerock.android.auth.exception.InvalidNotificationException;
+import java.util.Map;
+import java.util.HashMap;
+import android.os.Bundle;
+
 public class FcmService extends FirebaseMessagingService {
     private static final String TAG = "FcmService";
     FRAClient fraClient = null;
@@ -55,12 +62,71 @@ public class FcmService extends FirebaseMessagingService {
                 throw new RuntimeException(e);
             }
         } else {
-            if (ForgeRockPlugin.instance != null) {
-                Log.d(TAG, "⭐ In-app notification");
-                ForgeRockPlugin.instance.handleNotification(message);
+            Log.d(TAG, "⭐ In-app Notifications in use");
+            Log.d(TAG, "Value of ForgeRockPlugin.instance: " + (ForgeRockPlugin.instance == null ? "null" : "not null"));
+
+            if (isAppInForeground()) {
+                Log.d(TAG, "⭐ In-app: App is in foreground!");
+                if (ForgeRockPlugin.instance != null) {
+                    Log.d(TAG, "⭐ In-app: ForgeRockPlugin is instantiated!");
+                    ForgeRockPlugin.instance.handleNotification(message);
+                } else {
+                    Log.d(TAG, "🚨 In-app: ForgePlugin not started?");
+                    //TODO ??? Enviar callback para inicializar o plugin?
+                }
+            } else {
+                Log.d(TAG, "⭐ In-app: App is NOT in foreground!");
+                String senderId = message.getFrom();
+                showPushNotification(message, senderId);
             }
         }
     }
+
+    // Method to show a Notification when the App is in the background or killed and In-App notification is set.
+    private void showPushNotification(RemoteMessage message, String senderId) {
+        //TODO Set title and body as inputs from OS App
+        String title = "ForgeRock Notification";
+        String body = "A notification from ForgeRock just arrived. Tap to view.";
+
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        // Add senderId to the intent
+        intent.putExtra("senderId", senderId);
+
+        // Add the RemoteMessage data to the intent
+        for (Map.Entry<String, String> entry : message.getData().entrySet()) {
+            intent.putExtra(entry.getKey(), entry.getValue());
+        }
+
+        PendingIntent pendingIntent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT);
+        }
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.common_google_signin_btn_icon_dark)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent);
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // For Android Oreo and above, you need to create a Notification Channel
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        notificationManager.notify(0, notificationBuilder.build());
+    }
+
+
+
+
     /**
      * Create system notification to display to user the Push request received
      *
@@ -140,4 +206,10 @@ public class FcmService extends FirebaseMessagingService {
     public String getToken() {
         return getSharedPreferences("_", MODE_PRIVATE).getString("fcm_token", "empty");
     }
+
+    private boolean isAppInForeground() {
+        Lifecycle.State currentState = ProcessLifecycleOwner.get().getLifecycle().getCurrentState();
+        return currentState.isAtLeast(Lifecycle.State.RESUMED);
+    }
+
 }
