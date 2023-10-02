@@ -42,7 +42,7 @@ private void handleIntent(Intent intent) {
 
         if (!content.includes("handleIntent(Intent intent)")) {
             content = content.replace("import org.apache.cordova.*;", "import org.apache.cordova.*;\nimport android.util.Log;\nimport android.content.Intent;\nimport com.google.firebase.messaging.RemoteMessage;\nimport com.outsystems.experts.forgerockplugin.ForgeRockPlugin;\nimport java.util.HashMap;\nimport java.util.Map;");
-            content = content.replace("@Override", `${targetContent}\n\n@Override`);
+            content = content.replace("@Override", `${targetContent}\n\n\t@Override`);
             //content = content.replace("loadUrl(launchUrl);", `loadUrl(launchUrl);${targetContent}`);
             fs.writeFileSync(mainActivityPath, content);
             console.log("✅ MainActivity.java has been updated!");
