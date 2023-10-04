@@ -21,6 +21,8 @@ module.exports = {
     },
     setNativeNotification: function(isSet, success, error){
         exec(success, error, 'ForgeRockPlugin', 'setNativeNotification', [isSet]);
+    },
+    setNativeNotificationTitleMessage: function(title, message, success, error){
+        exec(success, error, 'ForgeRockPlugin', 'setNativeNotificationTitleMessage', [title, message]);
     }
-
 }

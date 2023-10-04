@@ -37,6 +37,10 @@ public class FcmService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
         Log.d(TAG, "⭐ reached service onMessageReceived");
+
+
+
+
         // Check if setNativeNotification was saved in SharedPreferences
         SharedPreferences sharedPreferences = getSharedPreferences("_", Context.MODE_PRIVATE);
         boolean isSet = sharedPreferences.getBoolean("nativeNotificationSet", false);
@@ -72,7 +76,6 @@ public class FcmService extends FirebaseMessagingService {
                     ForgeRockPlugin.instance.handleNotification(message);
                 } else {
                     Log.d(TAG, "🚨 In-app: ForgePlugin not started?");
-                    //TODO ??? Enviar callback para inicializar o plugin?
                 }
             } else {
                 Log.d(TAG, "⭐ In-app: App is NOT in foreground!");
@@ -84,20 +87,44 @@ public class FcmService extends FirebaseMessagingService {
 
     // Method to show a Notification when the App is in the background or killed and In-App notification is set.
     private void showPushNotification(RemoteMessage message, String senderId) {
-        //TODO Set title and body as inputs from OS App
-        String title = "ForgeRock Notification";
-        String body = "A notification from ForgeRock just arrived. Tap to view.";
+        String title = "Attention Required";
+        String text = "An authorization request just arrived. Tap to view.";
+
+        SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("_", Context.MODE_PRIVATE);
+        String savedTitle = sharedPreferences.getString("NotificationTitle", null);
+        String savedMessage = sharedPreferences.getString("NotificationMessage", null);
+
+        if(savedTitle != null && savedMessage != null) {
+            title = savedTitle;
+            text = savedMessage;
+            Log.d("SavedNotification", "Title: " + savedTitle + ", Message: " + savedMessage);
+        } else {
+            // Values not found in SharedPreferences
+            Log.d("SavedNotification", "No saved notification found");
+        }
 
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
+        // Convert RemoteMessage to JSON
+        Gson gson = new Gson();
+        String jsonMessage = gson.toJson(message);
+
+        // Save JSON string in SharedPreferences
+        //SharedPreferences sharedPreferences = getSharedPreferences("_", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("remoteMessage", jsonMessage);
+        editor.putLong("messageTimestamp", System.currentTimeMillis());
+        editor.putBoolean("launchedFromPush", true);
+        editor.apply();
+
         // Add senderId to the intent
         intent.putExtra("senderId", senderId);
 
-        // Add the RemoteMessage data to the intent
-        for (Map.Entry<String, String> entry : message.getData().entrySet()) {
-            intent.putExtra(entry.getKey(), entry.getValue());
-        }
+//        // Add the RemoteMessage data to the intent
+//        for (Map.Entry<String, String> entry : message.getData().entrySet()) {
+//            intent.putExtra(entry.getKey(), entry.getValue());
+//        }
 
         PendingIntent pendingIntent;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -109,7 +136,7 @@ public class FcmService extends FirebaseMessagingService {
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.common_google_signin_btn_icon_dark)
                 .setContentTitle(title)
-                .setContentText(body)
+                .setContentText(text)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
 

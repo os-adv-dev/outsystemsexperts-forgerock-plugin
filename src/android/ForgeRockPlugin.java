@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import com.google.gson.Gson;
 import com.outsystems.experts.forgerocksample.MainActivity;
 
 import org.apache.cordova.CordovaPlugin;
@@ -51,6 +52,8 @@ public class ForgeRockPlugin extends CordovaPlugin {
     private static PushNotification notification;
     private static Mechanism mechanism;
 
+    private  String customPayload;
+
     private static final String TAG = "ForgeRockPlugin";
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -78,8 +81,13 @@ public class ForgeRockPlugin extends CordovaPlugin {
             Boolean isSet = args.getBoolean(0);
             this.setNativeNotification(isSet, callbackContext);
             return true;
+        } else if(action.equals("setNativeNotificationTitleMessage")){
+            String title = args.getString(0);
+            String message = args.getString(1);
+            this.setNativeNotificationTitleMessage(title, message, callbackContext);
+            return true;
         }
-        
+
         return false;
     }
 
@@ -93,6 +101,19 @@ public class ForgeRockPlugin extends CordovaPlugin {
             callbackContext.success();
         } catch (AuthenticatorException e) {
             callbackContext.error("Error starting forge rock. Error was: " + e.getMessage());
+        }
+    }
+
+    private void setNativeNotificationTitleMessage(String title, String message, CallbackContext callbackContext){
+        try {
+            SharedPreferences sharedPreferences = cordova.getContext().getSharedPreferences("_", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("NotificationTitle", title);
+            editor.putString("NotificationMessage", message);
+            editor.apply();
+            callbackContext.success();
+        } catch (Exception e) {
+            callbackContext.error("Error: " + e.getMessage());
         }
     }
 
@@ -205,16 +226,48 @@ public class ForgeRockPlugin extends CordovaPlugin {
         Log.d(TAG, "👉 launchedFromPush: " + launchedFromPush);
 
         if (launchedFromPush) {
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putBoolean("💡 launchedFromPush", false);
-            editor.apply();
+            //TODO: Ler a notification do Shared Preferences e depois setar o conteúdo da variável ao nível da classe.
+            //TODO: A seguir, chamar o handle... Ver se é necessário manter o callback no fim desse if.
 
-            if (callbackContext != null) {
-                Log.d(TAG, "👉 Callback sent");
-                PluginResult result = new PluginResult(PluginResult.Status.OK);
-                result.setKeepCallback(true);
-                callbackContext.sendPluginResult(result);
+            long messageTimestamp = sharedPreferences.getLong("messageTimestamp", 0);
+            // Check if the message was sent in the last 5 minutes
+            if (System.currentTimeMillis() - messageTimestamp < 5 * 60 * 1000) {
+                String jsonMessage = sharedPreferences.getString("remoteMessage", null);
+                if (jsonMessage != null) {
+                    Gson gson = new Gson();
+                    RemoteMessage message = gson.fromJson(jsonMessage, RemoteMessage.class);
+
+                    // Remove "remoteMessage" from SharedPreferences
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.remove("remoteMessage");
+                    editor.apply();
+                    try {
+                        notification = fraClient.handleMessage(message);
+                    } catch (InvalidNotificationException e) {
+                        Log.e("ForgeRockPlugin", "❌ Invalid notification data", e);
+                    }
+
+                }
+
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putBoolean("launchedFromPush", false);
+                editor.apply();
+
+                if (callbackContext != null) {
+                    Log.d(TAG, "👉 Callback sent");
+                    PluginResult result = new PluginResult(PluginResult.Status.OK);
+                    result.setKeepCallback(true);
+                    callbackContext.sendPluginResult(result);
+                }
+            } else {
+                // Message is older than 5 minutes, remove it
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.remove("remoteMessage");
+                editor.remove("messageTimestamp");
+                editor.apply();
+                notification = null;
             }
+
         } else {
             Log.d(TAG, "👉 Not launched from push!");
         }
