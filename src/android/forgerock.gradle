@@ -1,3 +1,3 @@
 dependencies {
-    implementation 'org.forgerock:forgerock-authenticator:3.1.2'
+    implementation 'org.forgerock:forgerock-authenticator:4.2.0'
 }
