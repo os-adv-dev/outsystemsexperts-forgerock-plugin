@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Define the path to the cdv-gradle-config.json file
-const configPath = path.join('platforms', 'android', 'app', 'cdv-gradle-config.json');
+
+const configPath = path.join('platforms', 'android', 'cdv-gradle-config.json');
 
 // Define the new value for KOTLIN_VERSION
 const newKotlinVersion = '1.7.20';
