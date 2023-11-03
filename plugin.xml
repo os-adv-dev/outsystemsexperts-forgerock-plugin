@@ -43,6 +43,13 @@
             </receiver>
         </config-file>
 
+        <config-file target="res/xml/config.xml" parent="/*">
+            <preference name="GradlePluginKotlinVersion" value="1.7.20" />
+            <preference name="GradlePluginKotlinEnabled" value="true" />
+            <preference name="GradlePluginKotlinCodeStyle" value="official" />
+            <preference name="AndroidXEnabled" value="true"/>
+        </config-file>
+
         <config-file target="AndroidManifest.xml" parent="/manifest/application">
             
             <service
