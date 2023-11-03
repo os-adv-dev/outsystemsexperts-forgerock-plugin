@@ -1,12 +1,4 @@
-android {
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-        coreLibraryDesugaringEnabled true
-    }
-}
-
 dependencies {
-    implementation 'org.forgerock:forgerock-authenticator:4.2.0'
+    implementation 'org.forgerock:forgerock-authenticator:4.1.0'
     implementation "androidx.lifecycle:lifecycle-process:2.2.0"
 }
