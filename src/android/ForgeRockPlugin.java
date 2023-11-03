@@ -350,16 +350,16 @@ public class ForgeRockPlugin extends CordovaPlugin {
     }
 
 
-    private void getCurrentCode(CallbackContext callbackContext) {
-        try {
-            OathTokenCode token = oathMechanism.getOathTokenCode();
-            String tokenJson = tokenToJson(token);
-            //String otp = token.getCurrentCode();
-            callbackContext.success(tokenJson);
-        } catch (OathMechanismException e) {
-            callbackContext.error("Error getting current code. Error was" + e.getMessage());
-        }
-    }
+    // private void getCurrentCode(CallbackContext callbackContext) {
+    //     try {
+    //         OathTokenCode token = oathMechanism.getOathTokenCode();
+    //         String tokenJson = tokenToJson(token);
+    //         //String otp = token.getCurrentCode();
+    //         callbackContext.success(tokenJson);
+    //     } catch (OathMechanismException e) {
+    //         callbackContext.error("Error getting current code. Error was" + e.getMessage());
+    //     }
+    // }
 
     private void createMechanismFromUri(String uri, CallbackContext callbackContext) {
 
