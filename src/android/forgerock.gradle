@@ -1,4 +1,4 @@
 dependencies {
-    implementation 'org.forgerock:forgerock-authenticator:3.1.2'
+    implementation 'org.forgerock:forgerock-authenticator:4.2.0'
     implementation "androidx.lifecycle:lifecycle-process:2.2.0"
 }
