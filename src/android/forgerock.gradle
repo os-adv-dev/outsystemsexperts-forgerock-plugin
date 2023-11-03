@@ -1,8 +1,11 @@
 configurations.all {
-    resolutionStrategy {
-        force 'org.jetbrains.kotlin:kotlin-stdlib:1.7.20'
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.group == 'org.jetbrains.kotlin') {
+            details.useVersion '1.8.0'
+        }
     }
 }
+
 
 dependencies {
     implementation 'org.forgerock:forgerock-authenticator:4.1.0'
