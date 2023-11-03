@@ -50,10 +50,17 @@ class ForgeRockPlugin: CDVPlugin {
         print("***❤️ handleReceivedPushNotification")
         if let callbackId = self.didReceivePnCallbackId {
             print("***👉 callbackId: \(callbackId)")
+            
             if let userInfo = notification.userInfo {
-                if let userInfoString = jsonString(from: userInfo){
+//                //Checking if a transactional PN was received
+//                if let customPayload = userInfo["customPayload"] {
+//                    print("***✅ Sending custom payload callback")
+//                    sendPluginResult(status: CDVCommandStatus_OK, message: customPayload as! String, callbackId: callbackId, keepCallback: true)
+//                        return
+//                }
+                if let userInfoMessage = userInfo["message"]{
                     print("***✅ Sending callback")
-                    sendPluginResult(status: CDVCommandStatus_OK, message: userInfoString, callbackId: callbackId, keepCallback: true)
+                    sendPluginResult(status: CDVCommandStatus_OK, message: userInfoMessage as! String, callbackId: callbackId, keepCallback: true)
                 } else {
                     print("🚨 userInfo is empty")
                 }

@@ -46,23 +46,45 @@ public class ForgeRockHelper: NSObject {
     public func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         print("***⭐️ didReceiveRemoteNotification (ForgeRockHelper): \(userInfo)")
         // Once you receive the remote notification, handle it with FRAPushHandler to get the PushNotification object.
-        // If RemoteNotification does not contain the expected payload structured from AM, the Authenticator module does not return the PushNotification object.
         if let notification = FRAPushHandler.shared.application(application, didReceiveRemoteNotification: userInfo) {
             self.notification = notification
             self.completionHandler = completionHandler
             
+//            print("👉 Notification: \(notification.message)")
+            
+            var userInfoWithMessage = userInfo // Make a mutable copy of userInfo
+            
+            if let customPayloadString = notification.customPayload {
+                // Convert the JSON string to Data
+                if let jsonData = customPayloadString.data(using: .utf8) {
+                    do {
+                        // Parse the JSON data into a dictionary
+                        if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
+                            if let message = jsonDict["message"] {
+                                userInfoWithMessage["message"] = message
+                            }
+                        }
+                    } catch {
+                        print("🚨 Error parsing JSON: \(error.localizedDescription)")
+                    }
+                }
+            } else {
+                print("❌ customPayload is nil")
+            }
+
             //Was the app launched due to a push notification?
             let launchedFromPush = UserDefaults.standard.bool(forKey: "launchedFromPushNotification")
             if launchedFromPush {
                 // The app was launched due to a push notification
-                UserDefaults.standard.set(userInfo, forKey: "pushNotificationData")                
+                UserDefaults.standard.set(userInfoWithMessage, forKey: "pushNotificationData")
+                print("✅ pushNotificationData with customPayload saved to UserDefaults")
             } else {
-                NotificationCenter.default.post(name: .didReceivePushNotificationCallback, object: nil, userInfo: userInfo)
+                NotificationCenter.default.post(name: .didReceivePushNotificationCallback, object: nil, userInfo: userInfoWithMessage)
             }
-          } else {
+        } else {
             print("***🚨 Push notification: no data received")
             completionHandler(.noData)
-          }
+        }
     }
     
     @objc
