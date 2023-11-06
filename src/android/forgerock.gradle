@@ -1,12 +1,3 @@
-configurations.all {
-    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        if (details.requested.group == 'org.jetbrains.kotlin') {
-            details.useVersion '1.8.0'
-        }
-    }
-}
-
-
 dependencies {
     implementation 'org.forgerock:forgerock-authenticator:4.1.0'
     implementation "androidx.lifecycle:lifecycle-process:2.2.0"
