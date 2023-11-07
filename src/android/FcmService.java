@@ -26,6 +26,10 @@ import org.forgerock.android.auth.exception.InvalidNotificationException;
 import java.util.Map;
 import java.util.HashMap;
 import android.os.Bundle;
+import java.util.Base64;
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+
 
 public class FcmService extends FirebaseMessagingService {
     private static final String TAG = "FcmService";
@@ -38,36 +42,56 @@ public class FcmService extends FirebaseMessagingService {
     public void onMessageReceived(@NonNull RemoteMessage message) {
         Log.d(TAG, "⭐ reached service onMessageReceived");
 
-
-
-
         // Check if setNativeNotification was saved in SharedPreferences
         SharedPreferences sharedPreferences = getSharedPreferences("_", Context.MODE_PRIVATE);
         boolean isSet = sharedPreferences.getBoolean("nativeNotificationSet", false);
+
+        String callbackMessage = "";
+
+        String jwtToken = message.getData().get("message");
+        if (jwtToken != null) {
+            String messageContent = extractMessageFromJWT(jwtToken);
+            callbackMessage = messageContent;
+            Log.d(TAG, "Message Content: " + messageContent);
+        }
+
+        PushNotification pushNotification;
+        try {
+            fraClient = new FRAClient.FRAClientBuilder().withDeviceToken(this.getToken()).withContext(getApplicationContext()).start();
+            System.out.println("✉️ Message: " + message);
+            pushNotification = fraClient.handleMessage(message);
+            if (pushNotification != null) {
+                String customPayload = pushNotification.getCustomPayload();
+                callbackMessage = customPayload;
+                System.out.println("👉️ CustomPayload: " + customPayload);
+
+            }
+
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         if (isSet) {
             Log.d(TAG, "⭐ Native notification");
             try {
-                Log.d(TAG, "⭐ FcmToken: " + this.getToken());
-                fraClient = new FRAClient.FRAClientBuilder().withDeviceToken(this.getToken()).withContext(getApplicationContext()).start();
-            } catch (AuthenticatorException e) {
-                throw new RuntimeException(e);
-            }
-            try {
-                PushNotification pushNotification = fraClient.handleMessage(message);
+
                 // If it's a valid Push message from AM and not expired, create a system notification
                 if (pushNotification != null && !pushNotification.isExpired()) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         createNotificationChannel();
                     }
-                    createSystemNotification(pushNotification);
+                    createSystemNotification(pushNotification, callbackMessage);
                 }
                 Log.d(TAG, "✅ message handled");
-            } catch (InvalidNotificationException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         } else {
             Log.d(TAG, "⭐ In-app Notifications in use");
             Log.d(TAG, "Value of ForgeRockPlugin.instance: " + (ForgeRockPlugin.instance == null ? "null" : "not null"));
+
+
 
             if (isAppInForeground()) {
                 Log.d(TAG, "⭐ In-app: App is in foreground!");
@@ -80,15 +104,35 @@ public class FcmService extends FirebaseMessagingService {
             } else {
                 Log.d(TAG, "⭐ In-app: App is NOT in foreground!");
                 String senderId = message.getFrom();
-                showPushNotification(message, senderId);
+                showPushNotification(message, senderId, callbackMessage);
             }
         }
     }
 
+    public String extractMessageFromJWT(String jwtToken) {
+        String[] parts = jwtToken.split("\\."); // Split the JWT into its parts
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("Invalid JWT token");
+        }
+
+        String payload = parts[1]; // Get the payload part
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+        byte[] decodedBytes = decoder.decode(payload); // Decode the payload
+        String decodedPayload = new String(decodedBytes); // Convert to string
+
+        Type type = new TypeToken<Map<String, String>>(){}.getType();
+        Map<String, String> payloadMap = new Gson().fromJson(decodedPayload, type); // Convert JSON string to Map
+
+        return payloadMap.get("m"); // Return the message from the 'm' field
+    }
+
+
     // Method to show a Notification when the App is in the background or killed and In-App notification is set.
-    private void showPushNotification(RemoteMessage message, String senderId) {
-        String title = "Attention Required";
-        String text = "An authorization request just arrived. Tap to view.";
+    private void showPushNotification(RemoteMessage message, String senderId, String callbackMessage) {
+        //ring title = "Attention Required";
+        //String text = "An authorization request just arrived. Tap to view.";
+        String title = "Please respond";
+        String text = callbackMessage;
 
         SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("_", Context.MODE_PRIVATE);
         String savedTitle = sharedPreferences.getString("NotificationTitle", null);
@@ -162,13 +206,14 @@ public class FcmService extends FirebaseMessagingService {
     private static final String CHANNEL_ID = "1";
     private static final String CHANNEL_NAME = "forge_rock";
     private NotificationManager manager;
-    private void createSystemNotification(PushNotification pushNotification) {
+    private void createSystemNotification(PushNotification pushNotification, String callbackMessage) {
         int notificationId = pushNotification.getMessageId().hashCode();
         Log.d(TAG, "🤔 1 notificationId: " + notificationId);
         Mechanism mechanism = fraClient.getMechanism(pushNotification);
         Intent intent = ForgeRockPlugin.setupIntent(this, MainActivity.class, pushNotification, mechanism);
-        String title = String.format("Login attempt from %1$s at %2$s", mechanism.getAccountName(), mechanism.getIssuer());
-        String body = "Tap to log in";
+        //String title = String.format("Login attempt from %1$s at %2$s", mechanism.getAccountName(), mechanism.getIssuer());
+        String title = String.format(callbackMessage, mechanism.getAccountName(), mechanism.getIssuer());
+        String body = "Please respond";
         int pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             pendingIntentFlags |= PendingIntent.FLAG_IMMUTABLE;

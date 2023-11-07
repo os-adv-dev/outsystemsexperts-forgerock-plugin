@@ -8,11 +8,9 @@ import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-
-import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.outsystems.experts.forgerocksample.MainActivity;
 
 import org.apache.cordova.CordovaPlugin;
@@ -27,7 +25,6 @@ import org.forgerock.android.auth.OathTokenCode;
 import org.forgerock.android.auth.PushMechanism;
 import org.forgerock.android.auth.PushNotification;
 import org.forgerock.android.auth.exception.InvalidNotificationException;
-import org.forgerock.android.auth.exception.OathMechanismException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,9 +32,9 @@ import org.json.JSONObject;
 import org.forgerock.android.auth.FRAClient;
 import org.forgerock.android.auth.exception.AuthenticatorException;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
+import java.lang.reflect.Type;
+import java.util.Base64;
+import java.util.Map;
 
 
 /**
@@ -146,7 +143,35 @@ public class ForgeRockPlugin extends CordovaPlugin {
         try {
             notification = fraClient.handleMessage(message);
             if (didReceivePnCallbackContext != null) {
-                PluginResult result = new PluginResult(PluginResult.Status.OK);
+
+                String callbackMessage = "";
+                String jwtToken = message.getData().get("message");
+                if (jwtToken != null) {
+                    String messageContent = extractMessageFromJWT(jwtToken);
+                    callbackMessage = messageContent;
+                    Log.d(TAG, "Message Content: " + messageContent);
+                }
+
+                PushNotification pushNotification = fraClient.handleMessage(message);
+                if (pushNotification != null) {
+                    String customPayload = pushNotification.getCustomPayload();
+                    System.out.println("👉️ CustomPayload: " + customPayload);
+
+                    try {
+                        JSONObject jsonObject = new JSONObject(customPayload);
+                        // An empty JSON object will have a length of 0
+                        if (customPayload != null && jsonObject.length() > 0){
+                            String customPayloadMessage = parseJsonForMessage(customPayload);
+                            if (customPayloadMessage != null){
+                                callbackMessage = customPayloadMessage;
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                PluginResult result = new PluginResult(PluginResult.Status.OK, callbackMessage);
                 result.setKeepCallback(true);
                 didReceivePnCallbackContext.sendPluginResult(result);
             }
@@ -155,6 +180,32 @@ public class ForgeRockPlugin extends CordovaPlugin {
         }
     }
 
+    public String parseJsonForMessage(String jsonString) {
+        try {
+            JSONObject jsonObject = new JSONObject(jsonString);
+            return jsonObject.getString("message");
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String extractMessageFromJWT(String jwtToken) {
+        String[] parts = jwtToken.split("\\."); // Split the JWT into its parts
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("Invalid JWT token");
+        }
+
+        String payload = parts[1]; // Get the payload part
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+        byte[] decodedBytes = decoder.decode(payload); // Decode the payload
+        String decodedPayload = new String(decodedBytes); // Convert to string
+
+        Type type = new TypeToken<Map<String, String>>(){}.getType();
+        Map<String, String> payloadMap = new Gson().fromJson(decodedPayload, type); // Convert JSON string to Map
+
+        return payloadMap.get("m"); // Return the message from the 'm' field
+    }
 
     private void acceptAction(final CallbackContext callbackContext) {
         try {
@@ -420,5 +471,3 @@ public class ForgeRockPlugin extends CordovaPlugin {
 
 
 }
-
-
