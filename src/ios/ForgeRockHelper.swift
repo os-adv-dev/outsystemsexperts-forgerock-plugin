@@ -50,15 +50,18 @@ public class ForgeRockHelper: NSObject {
             self.notification = notification
             self.completionHandler = completionHandler
             
-//            print("👉 Notification: \(notification.message)")
+            print("⭐️ userInfo: \(userInfo)")
             
-            var userInfoWithMessage = userInfo // Make a mutable copy of userInfo
+            var userInfoWithMessage = userInfo
+            
+            if let aps = userInfo["aps"] as? [String: Any],
+               let alert = aps["alert"] as? String {
+                userInfoWithMessage["message"] = alert
+            }
             
             if let customPayloadString = notification.customPayload {
-                // Convert the JSON string to Data
                 if let jsonData = customPayloadString.data(using: .utf8) {
                     do {
-                        // Parse the JSON data into a dictionary
                         if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
                             if let message = jsonDict["message"] {
                                 userInfoWithMessage["message"] = message
