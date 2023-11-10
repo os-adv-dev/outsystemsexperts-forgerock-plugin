@@ -24,5 +24,8 @@ module.exports = {
     },
     setNativeNotificationTitleMessage: function(title, message, success, error){
         exec(success, error, 'ForgeRockPlugin', 'setNativeNotificationTitleMessage', [title, message]);
+    },
+    removeAccount: function(account, success, error){
+        exec(success, error, 'ForgeRockPlugin', 'removeAccount', [account]);
     }
 }

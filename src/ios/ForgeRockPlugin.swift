@@ -9,7 +9,7 @@ import FRAuthenticator
 
 @objc
 class ForgeRockPlugin: CDVPlugin {
-//    var command: CDVInvokedUrlCommand?
+    //    var command: CDVInvokedUrlCommand?
     var callbackId: String?
     var didReceivePnCallbackId: String?
     var mechanism: Mechanism?
@@ -47,26 +47,31 @@ class ForgeRockPlugin: CDVPlugin {
     
     @objc
     func handleReceivedPushNotification(_ notification: Notification){
+        
         print("***❤️ handleReceivedPushNotification")
         if let callbackId = self.didReceivePnCallbackId {
             print("***👉 callbackId: \(callbackId)")
             
-            if let userInfo = notification.userInfo {
-//                //Checking if a transactional PN was received
-//                if let customPayload = userInfo["customPayload"] {
-//                    print("***✅ Sending custom payload callback")
-//                    sendPluginResult(status: CDVCommandStatus_OK, message: customPayload as! String, callbackId: callbackId, keepCallback: true)
-//                        return
-//                }
-                if let userInfoMessage = userInfo["message"]{
-                    print("***✅ Sending callback")
-                    sendPluginResult(status: CDVCommandStatus_OK, message: userInfoMessage as! String, callbackId: callbackId, keepCallback: true)
+            let nativeNotificationIsSet = UserDefaults.standard.bool(forKey: "nativeNotificationIsSet")
+            if !nativeNotificationIsSet {
+                if let userInfo = notification.userInfo {
+                    //                //Checking if a transactional PN was received
+                    //                if let customPayload = userInfo["customPayload"] {
+                    //                    print("***✅ Sending custom payload callback")
+                    //                    sendPluginResult(status: CDVCommandStatus_OK, message: customPayload as! String, callbackId: callbackId, keepCallback: true)
+                    //                        return
+                    //                }
+                    if let userInfoMessage = userInfo["message"]{
+                        print("***✅ Sending callback")
+                        sendPluginResult(status: CDVCommandStatus_OK, message: userInfoMessage as! String, callbackId: callbackId, keepCallback: true)
+                    } else {
+                        print("🚨 userInfo is empty")
+                    }
                 } else {
-                    print("🚨 userInfo is empty")
+                    print("🚨 userInfo is nil")
                 }
-            } else {
-                print("🚨 userInfo is nil")
             }
+            
         } else {
             print("🚨 There are no callbacks set for receiving push notifications!")
         }
@@ -91,7 +96,7 @@ class ForgeRockPlugin: CDVPlugin {
                 sendPluginResult(status: CDVCommandStatus_ERROR, message: "Invalid URI", callbackId: command.callbackId)
                 return
             }
-
+            
             if FRAClient.shared == nil {
                 sendPluginResult(status: CDVCommandStatus_ERROR, message: "FRAuthenticator SDK is not initialized", callbackId: command.callbackId)
                 return
@@ -111,6 +116,48 @@ class ForgeRockPlugin: CDVPlugin {
             
         } else {
             sendPluginResult(status: CDVCommandStatus_ERROR, message: "Failed to get URI from arguments", callbackId: command.callbackId)
+        }
+    }
+    
+    @objc(removeAccount:)
+    func removeAccount(_ command: CDVInvokedUrlCommand){
+//        let allAccounts = FRAClient.shared?.getAllAccounts()
+//        print(allAccounts)
+        
+        //Receber uma PN e sacar o Mechanism desta, e depois removê-lo
+        //FRAClient.shared?.getMechanism(notification: <#T##PushNotification#>)
+        //FRAClient.shared?.removeMechanism(mechanism: <#T##Mechanism#>)
+        
+//        if let userAccount = command.arguments[0] as? String {
+//            if let account = FRAClient.shared?.getAccount(identifier: userAccount) {
+//                if let result = FRAClient.shared?.removeAccount(account: account) {
+//                    if result {
+//                        sendPluginResult(status: CDVCommandStatus_OK, callbackId: command.callbackId)
+//                    } else {
+//                        sendPluginResult(status: CDVCommandStatus_ERROR, message: "Failed to remove account", callbackId: command.callbackId)
+//                    }
+//                } else {
+//                    sendPluginResult(status: CDVCommandStatus_ERROR, message: "Failed to remove account. Result is null", callbackId: command.callbackId)
+//                }
+//            } else {
+//                sendPluginResult(status: CDVCommandStatus_ERROR, message: "Failed to remove account. Account is null", callbackId: command.callbackId)
+//            }
+//
+//        } else {
+//            sendPluginResult(status: CDVCommandStatus_ERROR, message: "Account parameter missing", callbackId: command.callbackId)
+//        }
+        
+    }
+    
+    @objc(setNativeNotification:)
+    func setNativeNotification(_ command: CDVInvokedUrlCommand){
+        if let isSet = command.arguments[0] as? Bool {
+            UserDefaults.standard.set(isSet, forKey: "nativeNotificationIsSet")
+            UserDefaults.standard.synchronize()
+            
+            sendPluginResult(status: CDVCommandStatus_OK, callbackId: command.callbackId)
+        } else {
+            sendPluginResult(status: CDVCommandStatus_ERROR, message: "Failed to get IsSet (Boolean) from arguments", callbackId: command.callbackId)
         }
     }
     
