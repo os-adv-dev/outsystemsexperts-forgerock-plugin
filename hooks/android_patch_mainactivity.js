@@ -1,15 +1,42 @@
 const fs = require('fs');
 const path = require('path');
+const xml2js = require('xml2js'); // Make sure xml2js is installed
 
 module.exports = function(context) {
     const rootdir = context.opts.projectRoot;
-    const platformRoot = path.join(rootdir, 'platforms/android/app/src/main/java/com/outsystems/experts/forgerocksample/');
-    const mainActivityPath = path.join(platformRoot, 'MainActivity.java');
+    const configXmlPath = path.join(rootdir, 'config.xml');
 
-    if (fs.existsSync(mainActivityPath)) {
-        let content = fs.readFileSync(mainActivityPath, 'utf-8');
+    // Helper function to parse config.xml and extract the package name
+    function getPackageName(callback) {
+        fs.readFile(configXmlPath, 'utf8', function (err, data) {
+            if (err) {
+                throw new Error('Error reading config.xml: ' + err);
+            }
 
-        const targetContent = `
+            xml2js.parseString(data, function (err, result) {
+                if (err) {
+                    throw new Error('Error parsing config.xml: ' + err);
+                }
+
+                var packageName = result.widget.$.id;
+                console.log("⭐️ packageName: " + packageName);
+                // Convert the package name to a path by replacing dots with slashes
+                var packagePath = packageName.replace(/\./g, '/');
+                callback(packagePath);
+            });
+        });
+    }
+
+    // Function to update MainActivity.java with the new content
+    function updateMainActivity(packagePath) {
+        const platformRoot = path.join(rootdir, 'platforms/android/app/src/main/java', packagePath);
+        const mainActivityPath = path.join(platformRoot, 'MainActivity.java');
+        console.log("⭐️ mainActivityPath: " + mainActivityPath);
+
+        if (fs.existsSync(mainActivityPath)) {
+            let content = fs.readFileSync(mainActivityPath, 'utf-8');
+
+            const targetContent = `
 @Override
 protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
@@ -40,16 +67,21 @@ private void handleIntent(Intent intent) {
 }
 `;
 
-        if (!content.includes("handleIntent(Intent intent)")) {
-            content = content.replace("import org.apache.cordova.*;", "import org.apache.cordova.*;\nimport android.util.Log;\nimport android.content.Intent;\nimport com.google.firebase.messaging.RemoteMessage;\nimport com.outsystems.experts.forgerockplugin.ForgeRockPlugin;\nimport java.util.HashMap;\nimport java.util.Map;");
-            content = content.replace("@Override", `${targetContent}\n\n\t@Override`);
-            //content = content.replace("loadUrl(launchUrl);", `loadUrl(launchUrl);${targetContent}`);
-            fs.writeFileSync(mainActivityPath, content);
-            console.log("✅ MainActivity.java has been updated!");
+            if (!content.includes("handleIntent(Intent intent)")) {
+                content = content.replace("import org.apache.cordova.*;", "import org.apache.cordova.*;\nimport android.util.Log;\nimport android.content.Intent;\nimport com.google.firebase.messaging.RemoteMessage;\nimport java.util.HashMap;\nimport java.util.Map;");
+                content = content.replace("@Override", `${targetContent}\n\n\t@Override`);
+                fs.writeFileSync(mainActivityPath, content);
+                console.log("✅ MainActivity.java has been updated!");
+            } else {
+                console.log("🚨 MainActivity.java is already updated.");
+            }
         } else {
-            console.log("🚨 MainActivity.java is already updated.");
+            console.error("❌ MainActivity.java not found!");
         }
-    } else {
-        console.error("❌ MainActivity.java not found!");
     }
+
+    // Retrieve the package path and update MainActivity.java
+    getPackageName(function(packagePath) {
+        updateMainActivity(packagePath);
+    });
 };
