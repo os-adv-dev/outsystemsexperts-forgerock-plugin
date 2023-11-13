@@ -13,6 +13,7 @@
         <hook type="before_plugin_install" src="hooks/install_prerequisites.js"/>
         <hook type="after_plugin_install" src="hooks/android_adjust_package_name.js"/>
         <hook type="after_plugin_install" src="hooks/android_import_forgerock_class.js"/>
+        <hook type="after_plugin_install" src="hooks/update_fcmservice.js"/>
         <config-file parent="/*" target="res/xml/config.xml">
             <feature name="ForgeRockPlugin">
                 <param name="android-package" value="com.outsystems.experts.forgerockplugin.ForgeRockPlugin" />
