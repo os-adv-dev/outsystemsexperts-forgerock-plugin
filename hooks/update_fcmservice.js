@@ -28,7 +28,7 @@ module.exports = function(context) {
         const platformRoot = path.join(rootdir, 'platforms/android/app/src/main/java');
         const oldPackagePath = 'com/outsystems/experts/forgerocksample';
         const newPackagePath = packageName.replace(/\./g, '/');
-        const fcmServicePath = path.join(platformRoot, newPackagePath, 'FcmService.java');
+        const fcmServicePath = path.join(platformRoot, "com/outsystems/experts/forgerockplugin", 'FcmService.java');
         console.log("⭐️ FcmService.java path: " + fcmServicePath);
 
         if (fs.existsSync(fcmServicePath)) {
