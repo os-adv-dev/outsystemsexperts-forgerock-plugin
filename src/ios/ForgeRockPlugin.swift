@@ -120,24 +120,49 @@ class ForgeRockPlugin: CDVPlugin {
     }
     
     @objc(removeAccount:)
-    func removeAccount(_ command: CDVInvokedUrlCommand){
-//        if let accountToBeRemoved = command.arguments[0] as? String {
+    func removeAccount (_ command: CDVInvokedUrlCommand){
+        if let userToBeRemoved = command.arguments[0] as? String {
+        
+// Code proposed by ForgeRock that freezes the app
+//        if let accounts = FRAClient.shared?.getAllAccounts(){
+//            for account in accounts {
+//                FRAClient.shared?.removeAccount(account: account)
+//                print("User \(account.accountName) removed.")
+//            }
+//        }
+            var mechanismToBeRemoved: Mechanism?
+                
             if let allNotifications = FRAClient.shared?.getAllNotifications(){
                 if !allNotifications.isEmpty{
-                    if let mechanismTobeRemoved = FRAClient.shared?.getMechanism(notification: allNotifications.last!){
-                        print("⭐️ User account name: \(mechanismTobeRemoved.accountName), Identifier: \(mechanismTobeRemoved.identifier) removed")
-                        FRAClient.shared?.removeMechanism(mechanism: mechanismTobeRemoved)
-                        self.sendPluginResult(status: CDVCommandStatus_OK, message: "User account name: \(mechanismTobeRemoved.accountName), removed", callbackId: command.callbackId)
+                    for notification in allNotifications {
+                        if let mechanism = FRAClient.shared?.getMechanism(notification: notification){
+                            if mechanism.accountName == userToBeRemoved {
+                                mechanismToBeRemoved = mechanism
+                                break
+                            }
+                        }
+                    }
+                    
+                    if let mechanism = mechanismToBeRemoved {
+                        let userRemoved = FRAClient.shared?.removeMechanism(mechanism: mechanism)
+                        if userRemoved == true {
+                            print("⭐️ User account name: \(mechanism.accountName), Identifier: \(mechanism.identifier) removed")
+                            self.sendPluginResult(status: CDVCommandStatus_OK, message: "User \(mechanism.accountName) removed", callbackId: command.callbackId)
+                        } else {
+                            sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: Could not remove user", callbackId: command.callbackId)
+                        }
                     } else {
                         sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: Could not extract mechanism from notification", callbackId: command.callbackId)
                     }
                 } else {
-                    sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: All Notifications Array is empty", callbackId: command.callbackId)
+                    sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: allNotifications Array is empty", callbackId: command.callbackId)
                 }
             } else {
                 sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: There are no notifications available", callbackId: command.callbackId)
             }
-//        }
+        } else {
+            sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: Missing mandatory username attribute", callbackId: command.callbackId)
+        }
     }
     
     @objc(setNativeNotification:)
