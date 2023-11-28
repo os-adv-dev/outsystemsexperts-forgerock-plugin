@@ -32,6 +32,7 @@ import org.json.JSONObject;
 import org.forgerock.android.auth.FRAClient;
 import org.forgerock.android.auth.exception.AuthenticatorException;
 
+import java.util.List;
 import java.lang.reflect.Type;
 import java.util.Base64;
 import java.util.Map;
