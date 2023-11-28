@@ -83,6 +83,10 @@ public class ForgeRockPlugin extends CordovaPlugin {
             String message = args.getString(1);
             this.setNativeNotificationTitleMessage(title, message, callbackContext);
             return true;
+        } else if(action.equals("removeAccount")){
+            String userToBeRemoved = args.getString(0);
+            this.removeAccount(userToBeRemoved,callbackContext);
+            return true;
         }
 
         return false;
@@ -98,6 +102,40 @@ public class ForgeRockPlugin extends CordovaPlugin {
             callbackContext.success();
         } catch (AuthenticatorException e) {
             callbackContext.error("Error starting forge rock. Error was: " + e.getMessage());
+        }
+    }
+
+    public void removeAccount(String userToBeRemoved, CallbackContext callbackContext){
+        if (userToBeRemoved != null && !userToBeRemoved.isEmpty()) {
+            List<PushNotification> allNotifications = fraClient.getAllNotifications();
+
+            if (allNotifications != null && !allNotifications.isEmpty()) {
+                Mechanism mechanismToBeRemoved = null;
+
+                for (PushNotification notification : allNotifications) {
+                    Mechanism mechanism = fraClient.getMechanism(notification);
+                    if (mechanism != null && userToBeRemoved.equals(mechanism.getAccountName())) {
+                        mechanismToBeRemoved = mechanism;
+                        break;
+                    }
+                }
+
+                if (mechanismToBeRemoved != null) {
+                    boolean userRemoved = fraClient.removeMechanism(mechanismToBeRemoved);
+                    if (userRemoved) {
+                        System.out.println("⭐️ User " + mechanismToBeRemoved.getAccountName() + " removed");
+                        callbackContext.success("User " + mechanismToBeRemoved.getAccountName() + " removed");
+                    } else {
+                        callbackContext.error("Error: Could not remove user");
+                    }
+                } else {
+                    callbackContext.error("Error: Could not extract mechanism from notification");
+                }
+            } else {
+                callbackContext.error("Error: allNotifications Array is empty");
+            }
+        } else {
+            callbackContext.error("Error: Missing mandatory username attribute");
         }
     }
 
