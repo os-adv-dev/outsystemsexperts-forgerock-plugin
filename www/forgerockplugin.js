@@ -4,7 +4,7 @@ module.exports = {
 //    start: function (success, error) {
 //        exec(success, error, 'ForgeRockPlugin', 'start');
 //    },
-    start: function (transactionalApiURLsuccess, error) {
+    start: function (transactionalApiURLsuccess, success, error) {
         exec(success, error, 'ForgeRockPlugin', 'start',[transactionalApiURLsuccess]);
     },
     createMechanismFromUri: function(uri, success, error){
