@@ -62,10 +62,89 @@ public class FcmService extends FirebaseMessagingService {
             pushNotification = fraClient.handleMessage(message);
             if (pushNotification != null) {
                 String customPayload = pushNotification.getCustomPayload();
-                callbackMessage = customPayload;
-                System.out.println("👉️ CustomPayload: " + customPayload);
+                JSONObject jsonObject = new JSONObject(customPayload);
 
+                if (customPayload != null && jsonObject.length() > 0){
+
+//                    String customPayloadMessage = parseJsonForMessage(customPayload);
+//                    if (customPayloadMessage != null){
+//                        callbackMessage = customPayloadMessage;
+//                    }
+                    //1-Buscar o username e a transaction ID ✅
+                    String username = parseJsonForObject("username", customPayload);
+                    String transactionId = parseJsonForObject("transactionId", customPayload);
+
+                    if (username != null && transactionId != null) {
+                        // Make the API call in a separate thread
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    // Get the SharedPreferences instance
+                                    SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+                                    String transactionalPNApiURL = sharedPreferences.getString("transactionalPNApiURL", null);
+
+                                    if(transactionalPNApiURL != null) {
+                                        Log.d("ForgeRock", "Transactional PN API URL: " + transactionalPNApiURL);
+
+                                        //2-Chamar a API com os dois inputs ✅
+                                        // Prepare URL and HttpURLConnection
+                                        URL url = new URL(transactionalPNApiURL);
+                                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+                                        // Set method and headers
+                                        connection.setRequestMethod("POST");
+                                        connection.setRequestProperty("Content-Type", "application/json; utf-8");
+                                        connection.setRequestProperty("Accept", "application/json");
+                                        connection.setRequestProperty("X-OpenAM-Username", username);
+                                        connection.setRequestProperty("transactionId", transactionId);
+
+                                        // Enable input and output streams
+                                        connection.setDoOutput(true);
+
+                                        // Read the response
+                                        try (BufferedReader br = new BufferedReader(
+                                                new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                                            StringBuilder response = new StringBuilder();
+                                            String responseLine = null;
+                                            while ((responseLine = br.readLine()) != null) {
+                                                response.append(responseLine.trim());
+                                            }
+                                            System.out.println(response.toString());
+
+                                            //3-Alterar a variável "callbackMessage" para passar todo o conteúdo (transaction detail e etc) e encaminhá-la aos métodos que criam a notificação abaixo
+                                            //4-Ao receber a resposta da API,formatar o json para que fique igual ao iOS
+
+                                        }
+                                    } else {
+                                        //DEVOLVER CALLBACK DE ERRO AQUI?
+                                        Log.d("ForgeRock", "🚨 No Transactional PN API URL found in SharedPreferences");
+                                    }
+
+
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    // Handle exceptions and errors
+                                }
+                            }
+                        }).start();
+                    } else {
+                        //FALTA CALLBACK DE ERRO
+                    }
+
+
+
+                    //5-Devolver o resultado para o callback OS
+                    //6-Depois falta arrumar o plugin wrapper para acomodar o novo json
+
+
+
+
+
+                }
             }
+
+
 
 
         } catch (Exception e) {

@@ -1,11 +1,8 @@
 var exec = require('cordova/exec');
 
 module.exports = {
-//    start: function (success, error) {
-//        exec(success, error, 'ForgeRockPlugin', 'start');
-//    },
-    start: function (transactionalApiURLsuccess, error) {
-        exec(success, error, 'ForgeRockPlugin', 'start',[transactionalApiURLsuccess]);
+    start: function (success, error) {
+        exec(success, error, 'ForgeRockPlugin', 'start');
     },
     createMechanismFromUri: function(uri, success, error){
         exec(success, error, 'ForgeRockPlugin', 'createMechanismFromUri', [uri]);

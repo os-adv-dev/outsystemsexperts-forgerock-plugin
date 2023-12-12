@@ -56,7 +56,8 @@ public class ForgeRockPlugin extends CordovaPlugin {
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         if (action.equals("start")) {
-            this.start(callbackContext);
+            String transactionalPNApiURLString = args.getString(0);
+            this.start(transactionalPNApiURLString, callbackContext);
             return true;
         } else if(action.equals("registerForRemoteNotifications")){
             String fcmToken = args.getString(0);
@@ -93,9 +94,14 @@ public class ForgeRockPlugin extends CordovaPlugin {
         return false;
     }
 
-    private void start(CallbackContext callbackContext) {
+    private void start(String transactionalPNApiURLString, CallbackContext callbackContext) {
         Log.d(TAG, "⭐️ Start CallbackId: " + callbackContext.getCallbackId());
         try {
+            // Save the value in SharedPreferences
+            SharedPreferences sharedPreferences = cordova.getActivity().getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("transactionalPNApiURL", transactionalPNApiURLString);
+            editor.apply();
             fraClient = new FRAClient.FRAClientBuilder()
                     .withContext(this.cordova.getContext())
                     .start();
