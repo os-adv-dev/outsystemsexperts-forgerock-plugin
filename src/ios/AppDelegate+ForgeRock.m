@@ -59,10 +59,10 @@
     return YES;
 }
 
-- (void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler {
-    // Display the notification banner even when the app is in the foreground
-    completionHandler(UNNotificationPresentationOptionBanner | UNNotificationPresentationOptionSound | UNNotificationPresentationOptionBadge);
-}
+//- (void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler {
+//    // Display the notification banner even when the app is in the foreground
+//    completionHandler(UNNotificationPresentationOptionBanner | UNNotificationPresentationOptionSound | UNNotificationPresentationOptionBadge);
+//}
 
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
        didReceiveNotificationResponse:(UNNotificationResponse *)response
@@ -70,8 +70,6 @@
 
     NSString *actionIdentifier = response.actionIdentifier;
     NSDictionary *userInfo = response.notification.request.content.userInfo;
-    
-    //Ver como fazer o transactional aqui. 
 
     // Check if the user tapped on Accept action
     if ([actionIdentifier isEqualToString:@"ACCEPT_ACTION"]) {

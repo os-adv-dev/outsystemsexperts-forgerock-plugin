@@ -51,36 +51,47 @@ class ForgeRockPlugin: CDVPlugin {
     }
     
     @objc
-    func handleReceivedPushNotification(_ notification: Notification){
-        
+    func handleReceivedPushNotification(_ notification: Notification) {
         print("***❤️ handleReceivedPushNotification")
         if let callbackId = self.didReceivePnCallbackId {
             print("***👉 callbackId: \(callbackId)")
-            
+
             let nativeNotificationIsSet = UserDefaults.standard.bool(forKey: "nativeNotificationIsSet")
             if !nativeNotificationIsSet {
-                if let userInfo = notification.userInfo {
-                    //                //Checking if a transactional PN was received
-                    //                if let customPayload = userInfo["customPayload"] {
-                    //                    print("***✅ Sending custom payload callback")
-                    //                    sendPluginResult(status: CDVCommandStatus_OK, message: customPayload as! String, callbackId: callbackId, keepCallback: true)
-                    //                        return
-                    //                }
-                    if let userInfoMessage = userInfo["message"]{
-                        print("***✅ Sending callback")
-                        sendPluginResult(status: CDVCommandStatus_OK, message: userInfoMessage as! String, callbackId: callbackId, keepCallback: true)
+                if let userInfo = notification.userInfo as? [String: Any] {
+                    // Check and retrieve the nested dictionary
+                    if let transactionInfo = userInfo["transactionInfo"] as? [String: Any] {
+                        do {
+                            // Convert the nested dictionary to JSON string
+                            let jsonData = try JSONSerialization.data(withJSONObject: transactionInfo, options: .prettyPrinted)
+                            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                                print("***✅ Sending callback with JSON string:\n\(jsonString)")
+                                sendPluginResult(status: CDVCommandStatus_OK, message: jsonString, callbackId: callbackId, keepCallback: true, isPushNotification: true, isTransaction: true)
+                            }
+                        } catch {
+                            print("🚨 Error converting transactionInfo to JSON: \(error.localizedDescription)")
+                            sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error converting transactionInfo to JSON: \(error.localizedDescription)", callbackId: callbackId)
+                        }
                     } else {
-                        print("🚨 userInfo is empty")
+                        if let message = userInfo["message"] as? String{
+                            //Standard Authorization PN request
+                            sendPluginResult(status: CDVCommandStatus_OK, message: message, callbackId: callbackId, keepCallback: true, isPushNotification: true, isTransaction: false)
+                        } else {
+                            print("🚨 transactionInfo is nil")
+                            sendPluginResult(status: CDVCommandStatus_ERROR, message: "transactionInfo is nil", callbackId: callbackId)
+                        }
+                        
                     }
                 } else {
                     print("🚨 userInfo is nil")
+                    sendPluginResult(status: CDVCommandStatus_ERROR, message: "userInfo is nil", callbackId: callbackId)
                 }
             }
-            
         } else {
             print("🚨 There are no callbacks set for receiving push notifications!")
         }
     }
+
     
     @objc(registerForRemoteNotifications:)
     func registerForRemoteNotifications(_ command: CDVInvokedUrlCommand){
@@ -123,7 +134,7 @@ class ForgeRockPlugin: CDVPlugin {
             sendPluginResult(status: CDVCommandStatus_ERROR, message: "Failed to get URI from arguments", callbackId: command.callbackId)
         }
     }
-    
+       
     @objc(removeAccount:)
     func removeAccount (_ command: CDVInvokedUrlCommand){
         if let userToBeRemoved = command.arguments[0] as? String {
@@ -200,10 +211,41 @@ class ForgeRockPlugin: CDVPlugin {
         sendPluginResult(status: CDVCommandStatus_OK, message: "{\"code\":\"123456\"}", callbackId: command.callbackId)
     }
     
-    func sendPluginResult(status: CDVCommandStatus, message: String = "", callbackId: String, keepCallback: Bool = false) {
-        let pluginResult = CDVPluginResult(status: status, messageAs: message)
-        pluginResult?.setKeepCallbackAs(keepCallback)
-        self.commandDelegate!.send(pluginResult, callbackId: callbackId)
+    func sendPluginResult(status: CDVCommandStatus, message: String = "", callbackId: String, keepCallback: Bool = false, isPushNotification: Bool = false, isTransaction: Bool = false) {
+        if isPushNotification {
+            var callbackDictionary: Dictionary<String, Any> = [:]
+            if isTransaction {
+                callbackDictionary["isTransaction"] = true
+            } else {
+                callbackDictionary["isTransaction"] = false
+            }
+            callbackDictionary["message"] = message
+            
+            // Convert the dictionary into a JSON string
+            do {
+                let jsonData = try JSONSerialization.data(withJSONObject: callbackDictionary, options: [])
+                if let jsonString = String(data: jsonData, encoding: .utf8) {
+                    let pluginResult = CDVPluginResult(status: status, messageAs: jsonString)
+                    pluginResult?.setKeepCallbackAs(keepCallback)
+                    self.commandDelegate!.send(pluginResult, callbackId: callbackId)
+                } else {
+                    print("Error serializing json string")
+                    let errorResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Error serializing json string")
+                    errorResult?.setKeepCallbackAs(keepCallback)
+                    self.commandDelegate!.send(errorResult, callbackId: callbackId)
+                }
+            } catch {
+                print("Error serializing callback dictionary to JSON: \(error)")
+                let errorResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "Error: Failed to serialize callback message")
+                errorResult?.setKeepCallbackAs(keepCallback)
+                self.commandDelegate!.send(errorResult, callbackId: callbackId)
+            }
+            
+        } else {
+            let pluginResult = CDVPluginResult(status: status, messageAs: message)
+            pluginResult?.setKeepCallbackAs(keepCallback)
+            self.commandDelegate!.send(pluginResult, callbackId: callbackId)
+        }
     }
     
     //MARK: Accept/Deny 2FA Push Notifications
