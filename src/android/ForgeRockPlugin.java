@@ -32,9 +32,9 @@ import org.json.JSONObject;
 import org.forgerock.android.auth.FRAClient;
 import org.forgerock.android.auth.exception.AuthenticatorException;
 
-import java.util.List;
 import java.lang.reflect.Type;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
 
@@ -112,40 +112,6 @@ public class ForgeRockPlugin extends CordovaPlugin {
         }
     }
 
-    public void removeAccount(String userToBeRemoved, CallbackContext callbackContext){
-        if (userToBeRemoved != null && !userToBeRemoved.isEmpty()) {
-            List<PushNotification> allNotifications = fraClient.getAllNotifications();
-
-            if (allNotifications != null && !allNotifications.isEmpty()) {
-                Mechanism mechanismToBeRemoved = null;
-
-                for (PushNotification notification : allNotifications) {
-                    Mechanism mechanism = fraClient.getMechanism(notification);
-                    if (mechanism != null && userToBeRemoved.equals(mechanism.getAccountName())) {
-                        mechanismToBeRemoved = mechanism;
-                        break;
-                    }
-                }
-
-                if (mechanismToBeRemoved != null) {
-                    boolean userRemoved = fraClient.removeMechanism(mechanismToBeRemoved);
-                    if (userRemoved) {
-                        System.out.println("⭐️ User " + mechanismToBeRemoved.getAccountName() + " removed");
-                        callbackContext.success("User " + mechanismToBeRemoved.getAccountName() + " removed");
-                    } else {
-                        callbackContext.error("Error: Could not remove user");
-                    }
-                } else {
-                    callbackContext.error("Error: Could not extract mechanism from notification");
-                }
-            } else {
-                callbackContext.error("Error: allNotifications Array is empty");
-            }
-        } else {
-            callbackContext.error("Error: Missing mandatory username attribute");
-        }
-    }
-
     private void setNativeNotificationTitleMessage(String title, String message, CallbackContext callbackContext){
         try {
             SharedPreferences sharedPreferences = cordova.getContext().getSharedPreferences("_", Context.MODE_PRIVATE);
@@ -183,7 +149,7 @@ public class ForgeRockPlugin extends CordovaPlugin {
         }
     }
 
-    public void handleNotification(RemoteMessage message){
+    public void handleNotification(RemoteMessage message, JSONObject inAppJsonObject){
         Log.d(TAG, "⭐️ handleNotification-RemoteMessage CallbackId: " + didReceivePnCallbackContext.getCallbackId());
         try {
             notification = fraClient.handleMessage(message);
@@ -197,6 +163,8 @@ public class ForgeRockPlugin extends CordovaPlugin {
                     Log.d(TAG, "Message Content: " + messageContent);
                 }
 
+                JSONObject jsonResultObject = new JSONObject();
+
                 PushNotification pushNotification = fraClient.handleMessage(message);
                 if (pushNotification != null) {
                     String customPayload = pushNotification.getCustomPayload();
@@ -206,17 +174,38 @@ public class ForgeRockPlugin extends CordovaPlugin {
                         JSONObject jsonObject = new JSONObject(customPayload);
                         // An empty JSON object will have a length of 0
                         if (customPayload != null && jsonObject.length() > 0){
-                            String customPayloadMessage = parseJsonForMessage(customPayload);
-                            if (customPayloadMessage != null){
-                                callbackMessage = customPayloadMessage;
+//                            String customPayloadMessage = parseJsonForMessage(customPayload);
+//                            if (customPayloadMessage != null){
+//                                callbackMessage = customPayloadMessage;
+//                            }
+
+                            //⭐️ Isso aqui está errado. O successUrl está no resultado da chamada da API, que está no FcmService.
+                            //⭐️ Devo ter esta chamada no FcmService (pois preciso lá para gerar a PN) e de alguma forma preciso trazer o resultado para cá.
+
+                            // Extract and parse the successUrl JSON string
+                            /*String successUrlString = jsonObject.getString("successUrl");
+                            JSONObject successUrlJson = new JSONObject(successUrlString);
+                            jsonResultObject.put("message", successUrlJson);
+                            jsonResultObject.put("isTransaction", true);*/
+                            if (inAppJsonObject != null) {
+                                jsonResultObject.put("message", inAppJsonObject.getString("successUrl"));
+                                jsonResultObject.put("isTransaction", true);
+                                System.out.println("👉👉👉 inAppJsonObject: " + inAppJsonObject.getString("successUrl"));
+                            } else {
+                                //💡 Tratar o erro aqui
                             }
+
+
+                        } else {
+                            jsonResultObject.put("message", callbackMessage);
+                            jsonResultObject.put("isTransaction", false);
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                 }
 
-                PluginResult result = new PluginResult(PluginResult.Status.OK, callbackMessage);
+                PluginResult result = new PluginResult(PluginResult.Status.OK, jsonResultObject.toString());
                 result.setKeepCallback(true);
                 didReceivePnCallbackContext.sendPluginResult(result);
             }
@@ -224,6 +213,41 @@ public class ForgeRockPlugin extends CordovaPlugin {
             throw new RuntimeException(e);
         }
     }
+
+    public void removeAccount(String userToBeRemoved, CallbackContext callbackContext){
+        if (userToBeRemoved != null && !userToBeRemoved.isEmpty()) {
+            List<PushNotification> allNotifications = fraClient.getAllNotifications();
+
+            if (allNotifications != null && !allNotifications.isEmpty()) {
+                Mechanism mechanismToBeRemoved = null;
+
+                for (PushNotification notification : allNotifications) {
+                    Mechanism mechanism = fraClient.getMechanism(notification);
+                    if (mechanism != null && userToBeRemoved.equals(mechanism.getAccountName())) {
+                        mechanismToBeRemoved = mechanism;
+                        break;
+                    }
+                }
+
+                if (mechanismToBeRemoved != null) {
+                    boolean userRemoved = fraClient.removeMechanism(mechanismToBeRemoved);
+                    if (userRemoved) {
+                        System.out.println("⭐️ User " + mechanismToBeRemoved.getAccountName() + " removed");
+                        callbackContext.success("User " + mechanismToBeRemoved.getAccountName() + " removed");
+                    } else {
+                        callbackContext.error("Error: Could not remove user");
+                    }
+                } else {
+                    callbackContext.error("Error: Could not extract mechanism from notification");
+                }
+            } else {
+                callbackContext.error("Error: allNotifications Array is empty");
+            }
+        } else {
+            callbackContext.error("Error: Missing mandatory username attribute");
+        }
+    }
+
 
     public String parseJsonForMessage(String jsonString) {
         try {
@@ -337,11 +361,14 @@ public class ForgeRockPlugin extends CordovaPlugin {
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.remove("remoteMessage");
                     editor.apply();
-                    try {
-                        notification = fraClient.handleMessage(message);
-                    } catch (InvalidNotificationException e) {
-                        Log.e("ForgeRockPlugin", "❌ Invalid notification data", e);
-                    }
+
+                    //handleNotification(message, null);
+
+//                    try {
+//                        notification = fraClient.handleMessage(message);
+//                    } catch (InvalidNotificationException e) {
+//                        Log.e("ForgeRockPlugin", "❌ Invalid notification data", e);
+//                    }
 
                 }
 
@@ -350,8 +377,10 @@ public class ForgeRockPlugin extends CordovaPlugin {
                 editor.apply();
 
                 if (callbackContext != null) {
+                    //ERRO AQUI quando a app não está em foreground
                     Log.d(TAG, "👉 Callback sent");
-                    PluginResult result = new PluginResult(PluginResult.Status.OK);
+                    PluginResult result = new PluginResult(PluginResult.Status.OK, jsonMessage.toString());
+                    //PluginResult result = new PluginResult(PluginResult.Status.OK);
                     result.setKeepCallback(true);
                     callbackContext.sendPluginResult(result);
                 }
@@ -516,3 +545,5 @@ public class ForgeRockPlugin extends CordovaPlugin {
 
 
 }
+
+

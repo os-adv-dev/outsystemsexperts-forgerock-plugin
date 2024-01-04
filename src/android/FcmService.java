@@ -23,6 +23,13 @@ import org.forgerock.android.auth.Mechanism;
 import org.forgerock.android.auth.PushNotification;
 import org.forgerock.android.auth.exception.AuthenticatorException;
 import org.forgerock.android.auth.exception.InvalidNotificationException;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Map;
 import java.util.HashMap;
 import android.os.Bundle;
@@ -40,6 +47,7 @@ public class FcmService extends FirebaseMessagingService {
     public FcmService() {}
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
+        boolean isTransactional = false;
         Log.d(TAG, "⭐ reached service onMessageReceived");
 
         // Check if setNativeNotification was saved in SharedPreferences
@@ -56,6 +64,7 @@ public class FcmService extends FirebaseMessagingService {
         }
 
         PushNotification pushNotification;
+        JSONObject inAppJsonObject = new JSONObject();
         try {
             fraClient = new FRAClient.FRAClientBuilder().withDeviceToken(this.getToken()).withContext(getApplicationContext()).start();
             System.out.println("✉️ Message: " + message);
@@ -64,8 +73,7 @@ public class FcmService extends FirebaseMessagingService {
                 String customPayload = pushNotification.getCustomPayload();
                 JSONObject jsonObject = new JSONObject(customPayload);
 
-                if (customPayload != null && jsonObject.length() > 0){
-
+                if (customPayload != null && jsonObject.length() > 0) {
 //                    String customPayloadMessage = parseJsonForMessage(customPayload);
 //                    if (customPayloadMessage != null){
 //                        callbackMessage = customPayloadMessage;
@@ -75,7 +83,9 @@ public class FcmService extends FirebaseMessagingService {
                     String transactionId = parseJsonForObject("transactionId", customPayload);
 
                     if (username != null && transactionId != null) {
+                        isTransactional = true;
                         // Make the API call in a separate thread
+                        String finalCallbackMessage = callbackMessage;
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
@@ -84,7 +94,7 @@ public class FcmService extends FirebaseMessagingService {
                                     SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
                                     String transactionalPNApiURL = sharedPreferences.getString("transactionalPNApiURL", null);
 
-                                    if(transactionalPNApiURL != null) {
+                                    if (transactionalPNApiURL != null) {
                                         Log.d("ForgeRock", "Transactional PN API URL: " + transactionalPNApiURL);
 
                                         //2-Chamar a API com os dois inputs ✅
@@ -110,10 +120,66 @@ public class FcmService extends FirebaseMessagingService {
                                             while ((responseLine = br.readLine()) != null) {
                                                 response.append(responseLine.trim());
                                             }
-                                            System.out.println(response.toString());
+                                            //System.out.println(response.toString());
 
                                             //3-Alterar a variável "callbackMessage" para passar todo o conteúdo (transaction detail e etc) e encaminhá-la aos métodos que criam a notificação abaixo
                                             //4-Ao receber a resposta da API,formatar o json para que fique igual ao iOS
+
+                                            try {
+                                                // Parse the original JSON string
+                                                JSONObject originalJson = new JSONObject(response.toString());
+
+                                                // Extract and parse the successUrl JSON string
+                                                String successUrlString = originalJson.getString("successUrl");
+                                                JSONObject successUrlJson = new JSONObject(successUrlString);
+
+                                                inAppJsonObject.put("successUrl", successUrlJson);
+                                                inAppJsonObject.put("isTransaction", true);
+
+                                                // Convert the new JSON object to string
+                                                //inAppJsonObject.toString();
+
+                                                //creating the notification
+                                                if (isSet) {
+                                                    Log.d(TAG, "⭐ Native notification");
+                                                    try {
+
+                                                        // If it's a valid Push message from AM and not expired, create a system notification
+                                                        if (pushNotification != null && !pushNotification.isExpired()) {
+                                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                                createNotificationChannel();
+                                                            }
+                                                            createSystemNotification(pushNotification, finalCallbackMessage);
+                                                        }
+                                                        Log.d(TAG, "✅ message handled");
+                                                    } catch (Exception e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                } else {
+                                                    Log.d(TAG, "⭐ In-app Notifications in use");
+                                                    Log.d(TAG, "Value of ForgeRockPlugin.instance: " + (ForgeRockPlugin.instance == null ? "null" : "not null"));
+
+                                                    if (isAppInForeground()) {
+                                                        Log.d(TAG, "⭐ In-app: App is in foreground!");
+                                                        if (ForgeRockPlugin.instance != null) {
+                                                            Log.d(TAG, "⭐ In-app: ForgeRockPlugin is instantiated!");
+                                                            ForgeRockPlugin.instance.handleNotification(message, inAppJsonObject);
+                                                        } else {
+                                                            Log.d(TAG, "🚨 In-app: ForgePlugin not started?");
+                                                        }
+                                                    } else {
+                                                        //💡💡💡 PRECISO TRATAR ISTO AINDA
+                                                        Log.d(TAG, "⭐ In-app: App is NOT in foreground!");
+                                                        String senderId = message.getFrom();
+                                                        showPushNotification(message, senderId, finalCallbackMessage);
+                                                    }
+                                                }
+
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+
+                                            }
+
 
                                         }
                                     } else {
@@ -133,58 +199,65 @@ public class FcmService extends FirebaseMessagingService {
                     }
 
 
-
                     //5-Devolver o resultado para o callback OS
                     //6-Depois falta arrumar o plugin wrapper para acomodar o novo json
 
 
-
-
-
                 }
             }
-
-
 
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        if (!isTransactional) {
+            if (isSet) {
+                Log.d(TAG, "⭐ Native notification");
+                try {
 
-        if (isSet) {
-            Log.d(TAG, "⭐ Native notification");
-            try {
-
-                // If it's a valid Push message from AM and not expired, create a system notification
-                if (pushNotification != null && !pushNotification.isExpired()) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        createNotificationChannel();
+                    // If it's a valid Push message from AM and not expired, create a system notification
+                    if (pushNotification != null && !pushNotification.isExpired()) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            createNotificationChannel();
+                        }
+                        createSystemNotification(pushNotification, callbackMessage);
                     }
-                    createSystemNotification(pushNotification, callbackMessage);
-                }
-                Log.d(TAG, "✅ message handled");
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            Log.d(TAG, "⭐ In-app Notifications in use");
-            Log.d(TAG, "Value of ForgeRockPlugin.instance: " + (ForgeRockPlugin.instance == null ? "null" : "not null"));
-
-
-
-            if (isAppInForeground()) {
-                Log.d(TAG, "⭐ In-app: App is in foreground!");
-                if (ForgeRockPlugin.instance != null) {
-                    Log.d(TAG, "⭐ In-app: ForgeRockPlugin is instantiated!");
-                    ForgeRockPlugin.instance.handleNotification(message);
-                } else {
-                    Log.d(TAG, "🚨 In-app: ForgePlugin not started?");
+                    Log.d(TAG, "✅ message handled");
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
             } else {
-                Log.d(TAG, "⭐ In-app: App is NOT in foreground!");
-                String senderId = message.getFrom();
-                showPushNotification(message, senderId, callbackMessage);
+                Log.d(TAG, "⭐ In-app Notifications in use");
+                Log.d(TAG, "Value of ForgeRockPlugin.instance: " + (ForgeRockPlugin.instance == null ? "null" : "not null"));
+
+
+                if (isAppInForeground()) {
+                    Log.d(TAG, "⭐ In-app: App is in foreground!");
+                    if (ForgeRockPlugin.instance != null) {
+                        Log.d(TAG, "⭐ In-app: ForgeRockPlugin is instantiated!");
+                        ForgeRockPlugin.instance.handleNotification(message, inAppJsonObject);
+                    } else {
+                        Log.d(TAG, "🚨 In-app: ForgePlugin not started?");
+                    }
+                } else {
+                    //💡💡💡 PRECISO TRATAR QUANDO A APP ESTÁ FECHADA OU EM BACKGROUND
+                    //É preciso salvar as coisas nas shared preferences aqui!
+                    //DEPOIS NA OUTRA CLASSE, NO MÉTODO didReceivePushNotificationSetCallback É PRECISO LER O SHARED PREFERENCE E CRIAR A IN-APP NOTIFICATION
+                    Log.d(TAG, "⭐ In-app: App is NOT in foreground!");
+                    String senderId = message.getFrom();
+                    showPushNotification(message, senderId, callbackMessage);
+                }
             }
+        }
+    }
+
+    public String parseJsonForObject(String key, String jsonString) {
+        try {
+            JSONObject jsonObject = new JSONObject(jsonString);
+            return jsonObject.getString(key);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
@@ -291,8 +364,10 @@ public class FcmService extends FirebaseMessagingService {
         Mechanism mechanism = fraClient.getMechanism(pushNotification);
         Intent intent = ForgeRockPlugin.setupIntent(this, MainActivity.class, pushNotification, mechanism);
         //String title = String.format("Login attempt from %1$s at %2$s", mechanism.getAccountName(), mechanism.getIssuer());
-        String title = String.format(callbackMessage, mechanism.getAccountName(), mechanism.getIssuer());
-        String body = "Please respond";
+        //String title = String.format(callbackMessage, mechanism.getAccountName(), mechanism.getIssuer());
+        String title = "Please respond";
+        //String body = "Please respond";
+        String body = callbackMessage;
         int pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             pendingIntentFlags |= PendingIntent.FLAG_IMMUTABLE;
@@ -312,16 +387,34 @@ public class FcmService extends FirebaseMessagingService {
         } else {
             Log.e(TAG, "🚨 1 Serialized PushNotification is null.");
         }
+
+        // Set up PendingIntents with the appropriate flags for different Android versions
+        int acceptPendingIntentFlags;
+        int denyPendingIntentFlags;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            acceptPendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+            denyPendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            acceptPendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+            denyPendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+        } else {
+            // For versions below Android M, use FLAG_ONE_SHOT for simplicity
+            acceptPendingIntentFlags = PendingIntent.FLAG_ONE_SHOT;
+            denyPendingIntentFlags = PendingIntent.FLAG_ONE_SHOT;
+        }
+
         acceptIntent.putExtra("serializedPushNotification", serializedPushNotification);
         acceptIntent.putExtra("mechanismUID", mechanism.getMechanismUID()); // Passing the mechanismUID to the AcceptReceiver
         acceptIntent.putExtra("notificationId", notificationId); // Passing the notificationId to the AcceptReceiver
-        PendingIntent acceptPendingIntent = PendingIntent.getBroadcast(this, 0, acceptIntent, pendingIntentFlags);
+        PendingIntent acceptPendingIntent = PendingIntent.getBroadcast(this, 0, acceptIntent, acceptPendingIntentFlags);
         // Intent for the "Deny" action
         Intent denyIntent = new Intent(this, DenyReceiver.class);
         denyIntent.putExtra("serializedPushNotification", serializedPushNotification);
         denyIntent.putExtra("mechanismUID", mechanism.getMechanismUID()); // Passing the mechanismUID to the DenyReceiver
         denyIntent.putExtra("notificationId", notificationId); // Passing the notificationId to the DenyReceiver
-        PendingIntent denyPendingIntent = PendingIntent.getBroadcast(this, 1, denyIntent, pendingIntentFlags);
+        PendingIntent denyPendingIntent = PendingIntent.getBroadcast(this, 1, denyIntent, denyPendingIntentFlags);
+
         notificationBuilder.addAction(R.drawable.common_google_signin_btn_icon_dark, "Accept", acceptPendingIntent)
                 .addAction(R.drawable.common_google_signin_btn_icon_dark, "Deny", denyPendingIntent);
         Notification notification = notificationBuilder.build();
@@ -332,10 +425,12 @@ public class FcmService extends FirebaseMessagingService {
      */
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
+            int importance = NotificationManager.IMPORTANCE_HIGH; // Use high importance for notification channel
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance);
             getManager().createNotificationChannel(channel);
         }
     }
+
     public NotificationManager getManager() {
         if (manager == null) {
             manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
