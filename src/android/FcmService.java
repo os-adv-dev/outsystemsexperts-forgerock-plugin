@@ -91,7 +91,7 @@ public class FcmService extends FirebaseMessagingService {
                             public void run() {
                                 try {
                                     // Get the SharedPreferences instance
-                                    SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+                                    SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("_", Context.MODE_PRIVATE);
                                     String transactionalPNApiURL = sharedPreferences.getString("transactionalPNApiURL", null);
 
                                     if (transactionalPNApiURL != null) {
@@ -131,10 +131,25 @@ public class FcmService extends FirebaseMessagingService {
 
                                                 // Extract and parse the successUrl JSON string
                                                 String successUrlString = originalJson.getString("successUrl");
+                                                System.out.println("🎯 originalJson: " + originalJson);
+                                                System.out.println("🎯 successUrlString: " + successUrlString);
+
                                                 JSONObject successUrlJson = new JSONObject(successUrlString);
 
                                                 inAppJsonObject.put("successUrl", successUrlJson);
                                                 inAppJsonObject.put("isTransaction", true);
+
+
+                                                // Save JSON string in SharedPreferences
+                                                /*SharedPreferences.Editor editor = sharedPreferences.edit();
+                                                editor.putString("remoteMessage", message.toString());
+                                                editor.putString("successUrl", successUrlString);
+                                                editor.putString("inAppJsonObject", inAppJsonObject.toString());
+                                                editor.putLong("messageTimestamp", System.currentTimeMillis());
+                                                editor.putBoolean("launchedFromPush", true);
+                                                editor.apply();
+                                                System.out.println("1 - 🎯➡️👉 remoteMessage: " + message.toString());
+                                                System.out.println("1 - 🎯➡️👉 inAppJsonObject: " + inAppJsonObject.toString());*/
 
                                                 // Convert the new JSON object to string
                                                 //inAppJsonObject.toString();
@@ -169,9 +184,23 @@ public class FcmService extends FirebaseMessagingService {
                                                         }
                                                     } else {
                                                         //💡💡💡 PRECISO TRATAR ISTO AINDA
+                                                        //Salvar o inAppJsonObject nas Shared Preferences aqui, e mais abaixo, quando não for Transactional PN
+
+                                                        // Save JSON string in SharedPreferences
+                                                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                                                        Gson gson = new Gson();
+                                                        String json = gson.toJson(message);
+                                                        editor.putString("remoteMessage", json);
+                                                        editor.putString("inAppJsonObject", inAppJsonObject.toString());
+                                                        editor.putLong("messageTimestamp", System.currentTimeMillis());
+                                                        editor.putBoolean("launchedFromPush", true);
+                                                        editor.apply();
+                                                        System.out.println("1 - 🎯🎯➡️👉 remoteMessage: " + message.toString());
+                                                        System.out.println("1 - 🎯🎯➡️👉 inAppJsonObject: " + inAppJsonObject.toString());
+
                                                         Log.d(TAG, "⭐ In-app: App is NOT in foreground!");
                                                         String senderId = message.getFrom();
-                                                        showPushNotification(message, senderId, finalCallbackMessage);
+                                                        showPushNotification(message, senderId, finalCallbackMessage, true);
                                                     }
                                                 }
 
@@ -227,7 +256,7 @@ public class FcmService extends FirebaseMessagingService {
                     throw new RuntimeException(e);
                 }
             } else {
-                Log.d(TAG, "⭐ In-app Notifications in use");
+                Log.d(TAG, "🎯⭐ In-app Notifications in use");
                 Log.d(TAG, "Value of ForgeRockPlugin.instance: " + (ForgeRockPlugin.instance == null ? "null" : "not null"));
 
 
@@ -243,9 +272,40 @@ public class FcmService extends FirebaseMessagingService {
                     //💡💡💡 PRECISO TRATAR QUANDO A APP ESTÁ FECHADA OU EM BACKGROUND
                     //É preciso salvar as coisas nas shared preferences aqui!
                     //DEPOIS NA OUTRA CLASSE, NO MÉTODO didReceivePushNotificationSetCallback É PRECISO LER O SHARED PREFERENCE E CRIAR A IN-APP NOTIFICATION
+                    // Save JSON string in SharedPreferences
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    Gson gson = new Gson();
+                    String json = gson.toJson(message);
+                    editor.putString("remoteMessage", json);
+                    try {
+                        inAppJsonObject.put("successUrl", callbackMessage);
+                        inAppJsonObject.put("isTransaction", false);
+                    } catch (JSONException e) {
+                        throw new RuntimeException(e);
+                    }
+                    editor.putString("inAppJsonObject", inAppJsonObject.toString());
+                    editor.putLong("messageTimestamp", System.currentTimeMillis());
+                    editor.putBoolean("launchedFromPush", true);
+                    editor.apply();
+
+
+
                     Log.d(TAG, "⭐ In-app: App is NOT in foreground!");
                     String senderId = message.getFrom();
-                    showPushNotification(message, senderId, callbackMessage);
+                    System.out.println("🎯 callbackMessage: " + callbackMessage);
+                    showPushNotification(message, senderId, callbackMessage, false);
+
+                    // Save JSON string in SharedPreferences
+//                    SharedPreferences.Editor editor = sharedPreferences.edit();
+//                    Gson gson = new Gson();
+//                    String json = gson.toJson(message);
+//                    editor.putString("remoteMessage", json);
+//                    editor.putString("inAppJsonObject", inAppJsonObject.toString());
+//                    editor.putLong("messageTimestamp", System.currentTimeMillis());
+//                    editor.putBoolean("launchedFromPush", true);
+//                    editor.apply();
+//                    System.out.println("B - 🎯🎯➡️👉 remoteMessage: " + message.toString());
+//                    System.out.println("B - 🎯🎯➡️👉 inAppJsonObject: " + inAppJsonObject.toString());
                 }
             }
         }
@@ -280,13 +340,23 @@ public class FcmService extends FirebaseMessagingService {
 
 
     // Method to show a Notification when the App is in the background or killed and In-App notification is set.
-    private void showPushNotification(RemoteMessage message, String senderId, String callbackMessage) {
+    private void showPushNotification(RemoteMessage message, String senderId, String callbackMessage, boolean isTransactional) {
+        System.out.println("🎯 showPushNotification: callbackMessage " + callbackMessage);
+
+        SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("_", Context.MODE_PRIVATE);
+
+        //É necessário isto?
+        System.out.println("🎯 Is transactional: " + isTransactional);
+        if (isTransactional){
+
+        }
+
         //ring title = "Attention Required";
         //String text = "An authorization request just arrived. Tap to view.";
         String title = "Please respond";
         String text = callbackMessage;
 
-        SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("_", Context.MODE_PRIVATE);
+
         String savedTitle = sharedPreferences.getString("NotificationTitle", null);
         String savedMessage = sharedPreferences.getString("NotificationMessage", null);
 
@@ -308,11 +378,11 @@ public class FcmService extends FirebaseMessagingService {
 
         // Save JSON string in SharedPreferences
         //SharedPreferences sharedPreferences = getSharedPreferences("_", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("remoteMessage", jsonMessage);
-        editor.putLong("messageTimestamp", System.currentTimeMillis());
-        editor.putBoolean("launchedFromPush", true);
-        editor.apply();
+//        SharedPreferences.Editor editor = sharedPreferences.edit();
+//        editor.putString("remoteMessage", jsonMessage);
+//        editor.putLong("messageTimestamp", System.currentTimeMillis());
+//        editor.putBoolean("launchedFromPush", true);
+//        editor.apply();
 
         // Add senderId to the intent
         intent.putExtra("senderId", senderId);

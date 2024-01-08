@@ -98,7 +98,7 @@ public class ForgeRockPlugin extends CordovaPlugin {
         Log.d(TAG, "⭐️ Start CallbackId: " + callbackContext.getCallbackId());
         try {
             // Save the value in SharedPreferences
-            SharedPreferences sharedPreferences = cordova.getActivity().getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+            SharedPreferences sharedPreferences = cordova.getActivity().getSharedPreferences("_", Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putString("transactionalPNApiURL", transactionalPNApiURLString);
             editor.apply();
@@ -204,6 +204,8 @@ public class ForgeRockPlugin extends CordovaPlugin {
                         e.printStackTrace();
                     }
                 }
+
+                System.out.println("🎯 jsonResultObject.toString(): " + jsonResultObject.toString());
 
                 PluginResult result = new PluginResult(PluginResult.Status.OK, jsonResultObject.toString());
                 result.setKeepCallback(true);
@@ -336,33 +338,83 @@ public class ForgeRockPlugin extends CordovaPlugin {
     }
 
 
-    private void didReceivePushNotificationSetCallback(CallbackContext callbackContext) {
+    private void didReceivePushNotificationSetCallback(CallbackContext callbackContext) throws JSONException {
         this.didReceivePnCallbackContext = callbackContext;
         Log.d(TAG, "🤔 just received a pushnotification");
 
         // Check if the app was opened by a PN click
         SharedPreferences sharedPreferences = cordova.getContext().getSharedPreferences("_", Context.MODE_PRIVATE);
+
+//        SharedPreferences.Editor editor2 = sharedPreferences.edit();
+//        //editor2.putBoolean("launchedFromPush", false);
+//        editor2.remove("launchedFromPush");
+//        editor2.apply();
+
         boolean launchedFromPush = sharedPreferences.getBoolean("launchedFromPush", false);
-        Log.d(TAG, "👉 launchedFromPush: " + launchedFromPush);
+        Log.d(TAG, "🎯👉 launchedFromPush: " + launchedFromPush);
 
         if (launchedFromPush) {
+            //Check if is transactional PN or not
+
+
+
+
+
             //TODO: Ler a notification do Shared Preferences e depois setar o conteúdo da variável ao nível da classe.
             //TODO: A seguir, chamar o handle... Ver se é necessário manter o callback no fim desse if.
-
+            Log.d(TAG, "👉 launchedFromPush: 💪");
             long messageTimestamp = sharedPreferences.getLong("messageTimestamp", 0);
+
+            Log.d(TAG, "🎯👉 messageTimestamp: " + messageTimestamp);
             // Check if the message was sent in the last 5 minutes
+
             if (System.currentTimeMillis() - messageTimestamp < 5 * 60 * 1000) {
                 String jsonMessage = sharedPreferences.getString("remoteMessage", null);
+                System.out.println("2 - 🎯➡️👉 remoteMessage: " + jsonMessage);
+                String inAppJsonString = sharedPreferences.getString("inAppJsonObject", null);
+                System.out.println("2 - 🎯➡️👉 inAppJsonObject: " + inAppJsonString);
                 if (jsonMessage != null) {
                     Gson gson = new Gson();
-                    RemoteMessage message = gson.fromJson(jsonMessage, RemoteMessage.class);
+                    RemoteMessage message = gson.fromJson(jsonMessage.toString(), RemoteMessage.class);
+                    //JSONObject successUrlObject = new JSONObject(successUrl);
+                    JSONObject inAppJsonObject = new JSONObject(inAppJsonString);
 
-                    // Remove "remoteMessage" from SharedPreferences
+                    //this.handleNotification(message, inAppJsonObject);
+
+                    // Remove data from SharedPreferences
+                    System.out.println("🎯 Removing SharedPreferences");
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.remove("remoteMessage");
+                    editor.remove("inAppJsonObject");
+                    editor.remove("messageTimestamp");
+                    editor.remove("launchedFromPush");
                     editor.apply();
 
-                    //handleNotification(message, null);
+
+
+                    if (callbackContext != null) {
+                        // Extract and parse the successUrl JSON string
+                        String successUrlString = inAppJsonObject.getString("successUrl");
+                        boolean isTransaction = inAppJsonObject.getBoolean("isTransaction");
+                        System.out.println("🎯⭐️ successUrlString: " + successUrlString);
+                        System.out.println("🎯⭐️ isTransaction: " + isTransaction);
+
+                        //JSONObject successUrlJson = new JSONObject(successUrlString);
+                        JSONObject resultJson = new JSONObject();
+
+                        //resultJson.put("message", successUrlJson);
+                        resultJson.put("message", inAppJsonObject.getString("successUrl"));
+                        resultJson.put("isTransaction", isTransaction);
+
+                        System.out.println("🎯 resultJson: " + resultJson.toString());
+
+                        //ERRO AQUI quando a app não está em foreground
+                        Log.d(TAG, "🎯👉 Callback sent");
+                        PluginResult result = new PluginResult(PluginResult.Status.OK, resultJson.toString());
+                        System.out.println(inAppJsonObject.toString());
+                        result.setKeepCallback(true);
+                        callbackContext.sendPluginResult(result);
+                    }
 
 //                    try {
 //                        notification = fraClient.handleMessage(message);
@@ -372,18 +424,7 @@ public class ForgeRockPlugin extends CordovaPlugin {
 
                 }
 
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putBoolean("launchedFromPush", false);
-                editor.apply();
 
-                if (callbackContext != null) {
-                    //ERRO AQUI quando a app não está em foreground
-                    Log.d(TAG, "👉 Callback sent");
-                    PluginResult result = new PluginResult(PluginResult.Status.OK, jsonMessage.toString());
-                    //PluginResult result = new PluginResult(PluginResult.Status.OK);
-                    result.setKeepCallback(true);
-                    callbackContext.sendPluginResult(result);
-                }
             } else {
                 // Message is older than 5 minutes, remove it
                 SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -410,16 +451,16 @@ public class ForgeRockPlugin extends CordovaPlugin {
         // Check if the app was awakened by a push notification
         String packageName = cordova.getActivity().getPackageName();
         String actionToCheck = packageName + ".PUSH_NOTIFICATION";
-        if (actionToCheck.equals(action)) {
-
-            // The app was opened by a push notification click
-            Context context = cordova.getActivity().getApplicationContext();
-            SharedPreferences sharedPreferences = context.getSharedPreferences("_", Context.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putBoolean("launchedFromPush", true);
-            editor.apply();
-
-        }
+//        if (actionToCheck.equals(action)) {
+//
+//            // The app was opened by a push notification click
+//            Context context = cordova.getActivity().getApplicationContext();
+//            SharedPreferences sharedPreferences = context.getSharedPreferences("_", Context.MODE_PRIVATE);
+//            SharedPreferences.Editor editor = sharedPreferences.edit();
+//            editor.putBoolean("launchedFromPush", true);
+//            editor.apply();
+//
+//        }
     }
 
     private void showConfirm(PushNotification notification){
