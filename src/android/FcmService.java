@@ -21,8 +21,6 @@ import com.outsystems.experts.forgerocksample.R;
 import org.forgerock.android.auth.FRAClient;
 import org.forgerock.android.auth.Mechanism;
 import org.forgerock.android.auth.PushNotification;
-import org.forgerock.android.auth.exception.AuthenticatorException;
-import org.forgerock.android.auth.exception.InvalidNotificationException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -31,8 +29,6 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
-import java.util.HashMap;
-import android.os.Bundle;
 import java.util.Base64;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
@@ -48,7 +44,6 @@ public class FcmService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
         boolean isTransactional = false;
-        Log.d(TAG, "⭐ reached service onMessageReceived");
 
         // Check if setNativeNotification was saved in SharedPreferences
         SharedPreferences sharedPreferences = getSharedPreferences("_", Context.MODE_PRIVATE);
@@ -60,7 +55,6 @@ public class FcmService extends FirebaseMessagingService {
         if (jwtToken != null) {
             String messageContent = extractMessageFromJWT(jwtToken);
             callbackMessage = messageContent;
-            Log.d(TAG, "Message Content: " + messageContent);
         }
 
         PushNotification pushNotification;
@@ -74,11 +68,6 @@ public class FcmService extends FirebaseMessagingService {
                 JSONObject jsonObject = new JSONObject(customPayload);
 
                 if (customPayload != null && jsonObject.length() > 0) {
-//                    String customPayloadMessage = parseJsonForMessage(customPayload);
-//                    if (customPayloadMessage != null){
-//                        callbackMessage = customPayloadMessage;
-//                    }
-                    //1-Buscar o username e a transaction ID ✅
                     String username = parseJsonForObject("username", customPayload);
                     String transactionId = parseJsonForObject("transactionId", customPayload);
 
@@ -95,10 +84,7 @@ public class FcmService extends FirebaseMessagingService {
                                     String transactionalPNApiURL = sharedPreferences.getString("transactionalPNApiURL", null);
 
                                     if (transactionalPNApiURL != null) {
-                                        Log.d("ForgeRock", "Transactional PN API URL: " + transactionalPNApiURL);
 
-                                        //2-Chamar a API com os dois inputs ✅
-                                        // Prepare URL and HttpURLConnection
                                         URL url = new URL(transactionalPNApiURL);
                                         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
@@ -120,10 +106,6 @@ public class FcmService extends FirebaseMessagingService {
                                             while ((responseLine = br.readLine()) != null) {
                                                 response.append(responseLine.trim());
                                             }
-                                            //System.out.println(response.toString());
-
-                                            //3-Alterar a variável "callbackMessage" para passar todo o conteúdo (transaction detail e etc) e encaminhá-la aos métodos que criam a notificação abaixo
-                                            //4-Ao receber a resposta da API,formatar o json para que fique igual ao iOS
 
                                             try {
                                                 // Parse the original JSON string
@@ -131,32 +113,14 @@ public class FcmService extends FirebaseMessagingService {
 
                                                 // Extract and parse the successUrl JSON string
                                                 String successUrlString = originalJson.getString("successUrl");
-                                                System.out.println("🎯 originalJson: " + originalJson);
-                                                System.out.println("🎯 successUrlString: " + successUrlString);
 
                                                 JSONObject successUrlJson = new JSONObject(successUrlString);
 
                                                 inAppJsonObject.put("successUrl", successUrlJson);
                                                 inAppJsonObject.put("isTransaction", true);
 
-
-                                                // Save JSON string in SharedPreferences
-                                                /*SharedPreferences.Editor editor = sharedPreferences.edit();
-                                                editor.putString("remoteMessage", message.toString());
-                                                editor.putString("successUrl", successUrlString);
-                                                editor.putString("inAppJsonObject", inAppJsonObject.toString());
-                                                editor.putLong("messageTimestamp", System.currentTimeMillis());
-                                                editor.putBoolean("launchedFromPush", true);
-                                                editor.apply();
-                                                System.out.println("1 - 🎯➡️👉 remoteMessage: " + message.toString());
-                                                System.out.println("1 - 🎯➡️👉 inAppJsonObject: " + inAppJsonObject.toString());*/
-
-                                                // Convert the new JSON object to string
-                                                //inAppJsonObject.toString();
-
                                                 //creating the notification
                                                 if (isSet) {
-                                                    Log.d(TAG, "⭐ Native notification");
                                                     try {
 
                                                         // If it's a valid Push message from AM and not expired, create a system notification
@@ -166,25 +130,18 @@ public class FcmService extends FirebaseMessagingService {
                                                             }
                                                             createSystemNotification(pushNotification, finalCallbackMessage);
                                                         }
-                                                        Log.d(TAG, "✅ message handled");
                                                     } catch (Exception e) {
                                                         throw new RuntimeException(e);
                                                     }
                                                 } else {
-                                                    Log.d(TAG, "⭐ In-app Notifications in use");
-                                                    Log.d(TAG, "Value of ForgeRockPlugin.instance: " + (ForgeRockPlugin.instance == null ? "null" : "not null"));
 
                                                     if (isAppInForeground()) {
-                                                        Log.d(TAG, "⭐ In-app: App is in foreground!");
                                                         if (ForgeRockPlugin.instance != null) {
-                                                            Log.d(TAG, "⭐ In-app: ForgeRockPlugin is instantiated!");
                                                             ForgeRockPlugin.instance.handleNotification(message, inAppJsonObject);
                                                         } else {
-                                                            Log.d(TAG, "🚨 In-app: ForgePlugin not started?");
+
                                                         }
                                                     } else {
-                                                        //💡💡💡 PRECISO TRATAR ISTO AINDA
-                                                        //Salvar o inAppJsonObject nas Shared Preferences aqui, e mais abaixo, quando não for Transactional PN
 
                                                         // Save JSON string in SharedPreferences
                                                         SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -195,10 +152,7 @@ public class FcmService extends FirebaseMessagingService {
                                                         editor.putLong("messageTimestamp", System.currentTimeMillis());
                                                         editor.putBoolean("launchedFromPush", true);
                                                         editor.apply();
-                                                        System.out.println("1 - 🎯🎯➡️👉 remoteMessage: " + message.toString());
-                                                        System.out.println("1 - 🎯🎯➡️👉 inAppJsonObject: " + inAppJsonObject.toString());
 
-                                                        Log.d(TAG, "⭐ In-app: App is NOT in foreground!");
                                                         String senderId = message.getFrom();
                                                         showPushNotification(message, senderId, finalCallbackMessage, true);
                                                     }
@@ -212,26 +166,21 @@ public class FcmService extends FirebaseMessagingService {
 
                                         }
                                     } else {
-                                        //DEVOLVER CALLBACK DE ERRO AQUI?
+                                        //CALLBACK
                                         Log.d("ForgeRock", "🚨 No Transactional PN API URL found in SharedPreferences");
                                     }
 
 
                                 } catch (Exception e) {
+                                    //CALLBACK
                                     e.printStackTrace();
                                     // Handle exceptions and errors
                                 }
                             }
                         }).start();
                     } else {
-                        //FALTA CALLBACK DE ERRO
+                        //CALLBACK
                     }
-
-
-                    //5-Devolver o resultado para o callback OS
-                    //6-Depois falta arrumar o plugin wrapper para acomodar o novo json
-
-
                 }
             }
 
@@ -241,7 +190,6 @@ public class FcmService extends FirebaseMessagingService {
         }
         if (!isTransactional) {
             if (isSet) {
-                Log.d(TAG, "⭐ Native notification");
                 try {
 
                     // If it's a valid Push message from AM and not expired, create a system notification
@@ -251,27 +199,18 @@ public class FcmService extends FirebaseMessagingService {
                         }
                         createSystemNotification(pushNotification, callbackMessage);
                     }
-                    Log.d(TAG, "✅ message handled");
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             } else {
-                Log.d(TAG, "🎯⭐ In-app Notifications in use");
-                Log.d(TAG, "Value of ForgeRockPlugin.instance: " + (ForgeRockPlugin.instance == null ? "null" : "not null"));
-
 
                 if (isAppInForeground()) {
-                    Log.d(TAG, "⭐ In-app: App is in foreground!");
                     if (ForgeRockPlugin.instance != null) {
-                        Log.d(TAG, "⭐ In-app: ForgeRockPlugin is instantiated!");
                         ForgeRockPlugin.instance.handleNotification(message, inAppJsonObject);
                     } else {
-                        Log.d(TAG, "🚨 In-app: ForgePlugin not started?");
+                        //CALLBACK
                     }
                 } else {
-                    //💡💡💡 PRECISO TRATAR QUANDO A APP ESTÁ FECHADA OU EM BACKGROUND
-                    //É preciso salvar as coisas nas shared preferences aqui!
-                    //DEPOIS NA OUTRA CLASSE, NO MÉTODO didReceivePushNotificationSetCallback É PRECISO LER O SHARED PREFERENCE E CRIAR A IN-APP NOTIFICATION
                     // Save JSON string in SharedPreferences
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     Gson gson = new Gson();
@@ -288,24 +227,8 @@ public class FcmService extends FirebaseMessagingService {
                     editor.putBoolean("launchedFromPush", true);
                     editor.apply();
 
-
-
-                    Log.d(TAG, "⭐ In-app: App is NOT in foreground!");
                     String senderId = message.getFrom();
-                    System.out.println("🎯 callbackMessage: " + callbackMessage);
                     showPushNotification(message, senderId, callbackMessage, false);
-
-                    // Save JSON string in SharedPreferences
-//                    SharedPreferences.Editor editor = sharedPreferences.edit();
-//                    Gson gson = new Gson();
-//                    String json = gson.toJson(message);
-//                    editor.putString("remoteMessage", json);
-//                    editor.putString("inAppJsonObject", inAppJsonObject.toString());
-//                    editor.putLong("messageTimestamp", System.currentTimeMillis());
-//                    editor.putBoolean("launchedFromPush", true);
-//                    editor.apply();
-//                    System.out.println("B - 🎯🎯➡️👉 remoteMessage: " + message.toString());
-//                    System.out.println("B - 🎯🎯➡️👉 inAppJsonObject: " + inAppJsonObject.toString());
                 }
             }
         }
@@ -341,18 +264,9 @@ public class FcmService extends FirebaseMessagingService {
 
     // Method to show a Notification when the App is in the background or killed and In-App notification is set.
     private void showPushNotification(RemoteMessage message, String senderId, String callbackMessage, boolean isTransactional) {
-        System.out.println("🎯 showPushNotification: callbackMessage " + callbackMessage);
 
         SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("_", Context.MODE_PRIVATE);
 
-        //É necessário isto?
-        System.out.println("🎯 Is transactional: " + isTransactional);
-        if (isTransactional){
-
-        }
-
-        //ring title = "Attention Required";
-        //String text = "An authorization request just arrived. Tap to view.";
         String title = "Please respond";
         String text = callbackMessage;
 
@@ -372,25 +286,8 @@ public class FcmService extends FirebaseMessagingService {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-        // Convert RemoteMessage to JSON
-        Gson gson = new Gson();
-        String jsonMessage = gson.toJson(message);
-
-        // Save JSON string in SharedPreferences
-        //SharedPreferences sharedPreferences = getSharedPreferences("_", Context.MODE_PRIVATE);
-//        SharedPreferences.Editor editor = sharedPreferences.edit();
-//        editor.putString("remoteMessage", jsonMessage);
-//        editor.putLong("messageTimestamp", System.currentTimeMillis());
-//        editor.putBoolean("launchedFromPush", true);
-//        editor.apply();
-
         // Add senderId to the intent
         intent.putExtra("senderId", senderId);
-
-//        // Add the RemoteMessage data to the intent
-//        for (Map.Entry<String, String> entry : message.getData().entrySet()) {
-//            intent.putExtra(entry.getKey(), entry.getValue());
-//        }
 
         PendingIntent pendingIntent;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -430,13 +327,9 @@ public class FcmService extends FirebaseMessagingService {
     private NotificationManager manager;
     private void createSystemNotification(PushNotification pushNotification, String callbackMessage) {
         int notificationId = pushNotification.getMessageId().hashCode();
-        Log.d(TAG, "🤔 1 notificationId: " + notificationId);
         Mechanism mechanism = fraClient.getMechanism(pushNotification);
         Intent intent = ForgeRockPlugin.setupIntent(this, MainActivity.class, pushNotification, mechanism);
-        //String title = String.format("Login attempt from %1$s at %2$s", mechanism.getAccountName(), mechanism.getIssuer());
-        //String title = String.format(callbackMessage, mechanism.getAccountName(), mechanism.getIssuer());
         String title = "Please respond";
-        //String body = "Please respond";
         String body = callbackMessage;
         int pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -448,15 +341,9 @@ public class FcmService extends FirebaseMessagingService {
                 .setSmallIcon(R.drawable.common_google_signin_btn_icon_dark)
                 .setContentIntent(PendingIntent.getActivity(this, 0, intent, pendingIntentFlags))
                 .setAutoCancel(true);
-        // Intent for the "Accept" action
         Intent acceptIntent = new Intent(this, AcceptReceiver.class);
         Gson gson = new Gson();
         String serializedPushNotification = gson.toJson(pushNotification);
-        if (serializedPushNotification != null) {
-            Log.d(TAG, "✅ 1 Serialized PushNotification: " + serializedPushNotification);
-        } else {
-            Log.e(TAG, "🚨 1 Serialized PushNotification is null.");
-        }
 
         // Set up PendingIntents with the appropriate flags for different Android versions
         int acceptPendingIntentFlags;
