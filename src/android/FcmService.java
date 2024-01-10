@@ -338,7 +338,7 @@ public class FcmService extends FirebaseMessagingService {
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(body)
-                .setSmallIcon(R.drawable.common_google_signin_btn_icon_dark)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(PendingIntent.getActivity(this, 0, intent, pendingIntentFlags))
                 .setAutoCancel(true);
         Intent acceptIntent = new Intent(this, AcceptReceiver.class);
@@ -372,8 +372,8 @@ public class FcmService extends FirebaseMessagingService {
         denyIntent.putExtra("notificationId", notificationId); // Passing the notificationId to the DenyReceiver
         PendingIntent denyPendingIntent = PendingIntent.getBroadcast(this, 1, denyIntent, denyPendingIntentFlags);
 
-        notificationBuilder.addAction(R.drawable.common_google_signin_btn_icon_dark, "Accept", acceptPendingIntent)
-                .addAction(R.drawable.common_google_signin_btn_icon_dark, "Deny", denyPendingIntent);
+        notificationBuilder.addAction(R.mipmap.ic_launcher, "Accept", acceptPendingIntent)
+                .addAction(R.mipmap.ic_launcher, "Deny", denyPendingIntent);
         Notification notification = notificationBuilder.build();
         getManager().notify(notificationId, notification);
     }
