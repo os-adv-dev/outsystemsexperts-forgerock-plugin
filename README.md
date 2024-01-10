@@ -1,4 +1,4 @@
-# OutSystems ForgeRockPlugin for Cordova
+# OutSystems ForgeRockPlugin for Cordova 
 
 A Cordova plugin that provides integration with ForgeRock services.
 

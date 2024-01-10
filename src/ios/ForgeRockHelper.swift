@@ -52,20 +52,130 @@ public class ForgeRockHelper: NSObject {
             
             print("⭐️ userInfo: \(userInfo)")
             
-            var userInfoWithMessage = userInfo
+            var userInfoWithMessage: [AnyHashable : Any] = [:]
             
             if let aps = userInfo["aps"] as? [String: Any],
                let alert = aps["alert"] as? String {
+                print("⭐️ alert: \(alert)")
                 userInfoWithMessage["message"] = alert
             }
             
+            var isThereCustomPayload = false
             if let customPayloadString = notification.customPayload {
+                
+                if let jsonData = customPayloadString.data(using: .utf8) {
+                    do {
+                        let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: [])
+
+                        if let jsonDict = jsonObject as? [String: Any], !jsonDict.isEmpty {
+                            //Transactional PN received
+                            print("🎯 Received a non-empty custom payload JSON object or a different type")
+                            isThereCustomPayload = true
+                            if let transactionId = jsonDict["transactionId"] as? String, let username = jsonDict["username"] as? String {//}, let locale = jsonDict["locale"] as? String {
+                                //userInfoWithMessage["transactionId"] = transactionId
+                                //userInfoWithMessage["locale"] = locale
+                                
+                                userInfoWithMessage["transactionId"] = transactionId
+                                userInfoWithMessage["username"] = username
+                                
+                                // Read the URL from UserDefaults
+                                if let urlString = UserDefaults.standard.string(forKey: "transactionalPNApiURL") {
+                                    print("⭐️ urlString: \(urlString)")
+                                    
+                                    // Prepare URL
+                                    //let urlString = "https://mobout-test.anb.com.sa/auth/json/realms/root/realms/iam/authenticate?authIndexType=service&authIndexValue=ANB-PushTransactionDataDummy"
+                                    guard let url = URL(string: urlString) else { return }
+                                    
+                                    // Prepare URLRequest
+                                    var request = URLRequest(url: url)
+                                    request.httpMethod = "POST"
+                                    
+                                    // Set headers
+                                    request.setValue(username, forHTTPHeaderField: "X-OpenAM-Username")
+                                    request.setValue(transactionId, forHTTPHeaderField: "transactionId")
+                                    
+                                    // request.httpBody = ...
+                                    
+                                    // Clearing cookies
+                                    let cookieStorage = HTTPCookieStorage.shared
+                                    if let cookies = cookieStorage.cookies {
+                                        for cookie in cookies {
+                                            cookieStorage.deleteCookie(cookie)
+                                        }
+                                    }
+                                    
+                                    // Perform the request
+                                    // Perform the request
+                                    let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                                        if let error = error {
+                                            // Handle error
+                                            print("🚨 Error making API call: \(error.localizedDescription)")
+                                            return
+                                        }
+                                        
+                                        if let data = data {
+                                            do {
+                                                // Parse the JSON data into a dictionary
+                                                if let jsonDictionary = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                                                    print("✅ Parsed dictionary: \(jsonDictionary)")
+                                                    
+                                                    if let successUrlString = jsonDictionary["successUrl"] as? String {
+                                                        print("⭐️ successUrl: \(successUrlString)")
+                                                        do {
+                                                            // Convert the string back into Data for JSON parsing
+                                                            if let data = successUrlString.data(using: .utf8) {
+                                                                // Parse the data into a dictionary
+                                                                if let successUrlDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                                                                    userInfoWithMessage["transactionInfo"] = successUrlDict
+                                                                    // Was the app launched due to a push notification?
+                                                                    let launchedFromPush = UserDefaults.standard.bool(forKey: "launchedFromPushNotification")
+                                                                    if launchedFromPush {
+                                                                        // The app was launched due to a push notification
+                                                                        UserDefaults.standard.set(userInfoWithMessage, forKey: "pushNotificationData")
+                                                                        print("✅ pushNotificationData with customPayload saved to UserDefaults")
+                                                                    } else {
+                                                                        NotificationCenter.default.post(name: .didReceivePushNotificationCallback, object: nil, userInfo: userInfoWithMessage)
+                                                                    }
+                                                                } else {
+                                                                    print("Error: Unable to parse successUrl into a dictionary")
+                                                                }
+                                                            }
+                                                        } catch {
+                                                            print("Error parsing successUrl JSON: \(error.localizedDescription)")
+                                                        }
+                                                    } else {
+                                                        print("Error: SuccessUrl string missing from custom payload")
+                                                    }
+
+                                                }
+                                            } catch {
+                                                // Handle JSON parsing error
+                                                print("🚨 Error parsing JSON: \(error.localizedDescription)")
+                                            }
+                                        }
+                                    }
+                                    task.resume()
+                                }
+                            }
+
+                        } else {
+                            //Standard Authentication PN received
+                            print("🎯 Received an empty custom payload json object")
+                            NotificationCenter.default.post(name: .didReceivePushNotificationCallback, object: nil, userInfo: userInfoWithMessage)
+                            
+                        }
+                    } catch {
+                        print("Error parsing JSON: \(error)")
+                        // Handle parsing error
+                    }
+                }
+
+                
+                
                 if let jsonData = customPayloadString.data(using: .utf8) {
                     do {
                         if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] {
-                            if let message = jsonDict["message"] {
-                                userInfoWithMessage["message"] = message
-                            }
+                            
                         }
                     } catch {
                         print("🚨 Error parsing JSON: \(error.localizedDescription)")
@@ -74,15 +184,17 @@ public class ForgeRockHelper: NSObject {
             } else {
                 print("❌ customPayload is nil")
             }
-
-            //Was the app launched due to a push notification?
-            let launchedFromPush = UserDefaults.standard.bool(forKey: "launchedFromPushNotification")
-            if launchedFromPush {
-                // The app was launched due to a push notification
-                UserDefaults.standard.set(userInfoWithMessage, forKey: "pushNotificationData")
-                print("✅ pushNotificationData with customPayload saved to UserDefaults")
-            } else {
-                NotificationCenter.default.post(name: .didReceivePushNotificationCallback, object: nil, userInfo: userInfoWithMessage)
+            
+            if !isThereCustomPayload {
+                //Was the app launched due to a push notification?
+                let launchedFromPush = UserDefaults.standard.bool(forKey: "launchedFromPushNotification")
+                if launchedFromPush {
+                    // The app was launched due to a push notification
+                    UserDefaults.standard.set(userInfoWithMessage, forKey: "pushNotificationData")
+                    print("✅ pushNotificationData with customPayload saved to UserDefaults")
+                } else {
+                    NotificationCenter.default.post(name: .didReceivePushNotificationCallback, object: nil, userInfo: userInfoWithMessage)
+                }
             }
         } else {
             print("***🚨 Push notification: no data received")
