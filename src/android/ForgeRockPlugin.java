@@ -1,12 +1,10 @@
 package com.outsystems.experts.forgerockplugin;
 
-import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.firebase.messaging.RemoteMessage;
 import com.google.gson.Gson;
@@ -16,11 +14,8 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.forgerock.android.auth.FRAListener;
-import org.forgerock.android.auth.Logger;
 import org.forgerock.android.auth.Mechanism;
 import org.forgerock.android.auth.OathMechanism;
-import org.forgerock.android.auth.OathTokenCode;
-import org.forgerock.android.auth.PushMechanism;
 import org.forgerock.android.auth.PushNotification;
 import org.forgerock.android.auth.exception.InvalidNotificationException;
 import org.json.JSONArray;
