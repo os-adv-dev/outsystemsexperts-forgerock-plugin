@@ -209,7 +209,7 @@ public class ForgeRockPlugin extends CordovaPlugin {
                     callbackContext.error("Error: Could not extract mechanism from notification");
                 }
             } else {
-                callbackContext.error("Error: allNotifications Array is empty");
+                callbackContext.error("Error: user not found");
             }
         } else {
             callbackContext.error("Error: Missing mandatory username attribute");
