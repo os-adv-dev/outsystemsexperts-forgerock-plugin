@@ -7,8 +7,8 @@
         <clobbers target="cordova.plugins.outsystemsexperts.forgerockplugin" />
     </js-module>
     <dependency id="com.outsystems.firebase.cloudmessaging" url="https://github.com/OutSystems/cordova-outsystems-firebase-cloud-messaging.git#2.0.0"/>
-    <preference name="transactionPnUrl" />
     <platform name="android">
+        <preference name="transactionPnUrl" />
         <hook type="before_compile" src="hooks/set_kotlin_version.js"/>
         <!--<hook type="after_plugin_install" src="hooks/android_patch_mainactivity.js"/>-->
         <hook type="before_plugin_install" src="hooks/install_prerequisites.js"/>
@@ -63,6 +63,7 @@
         <framework src="src/android/forgerock.gradle" custom="true" type="gradleReference" />
     </platform>
     <platform name="ios">
+        <preference name="transactionPnUrl" />
         <!-- Hooks for Swift Support -->
         <hook type="before_prepare" src="hooks/comment_objc_class.js"/>
         <hook type="before_plugin_install" src="hooks/install_prerequisites.js"/>
