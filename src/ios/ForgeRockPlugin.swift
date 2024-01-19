@@ -16,11 +16,13 @@ class ForgeRockPlugin: CDVPlugin {
     
     @objc(start:)
     func start(_ command: CDVInvokedUrlCommand){
-        if let transactionalPNApiURLString = command.arguments[0] as? String {
+
+        if let transactionPnUrl = self.commandDelegate?.settings["transactionPnUrl".lowercased()] as? String {
             let userDefaultsKey = "transactionalPNApiURL"
-                UserDefaults.standard.set(transactionalPNApiURLString, forKey: userDefaultsKey)
-                UserDefaults.standard.synchronize()
+            UserDefaults.standard.set(transactionalPNApiURLString, forKey: userDefaultsKey)
+            UserDefaults.standard.synchronize()            
         }
+
         if FRAClient.shared == nil {
             FRAClient.start()
         }
