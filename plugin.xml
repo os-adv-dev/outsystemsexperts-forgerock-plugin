@@ -9,6 +9,9 @@
     <dependency id="com.outsystems.firebase.cloudmessaging" url="https://github.com/OutSystems/cordova-outsystems-firebase-cloud-messaging.git#2.0.0"/>
     <platform name="android">
         <preference name="transactionPnUrl" />
+        <config-file target="config.xml" parent="/*">
+            <preference name="transactionPnUrl" value="$transactionPnUrl" />
+        </config-file>
         <hook type="before_compile" src="hooks/set_kotlin_version.js"/>
         <!--<hook type="after_plugin_install" src="hooks/android_patch_mainactivity.js"/>-->
         <hook type="before_plugin_install" src="hooks/install_prerequisites.js"/>
@@ -64,6 +67,9 @@
     </platform>
     <platform name="ios">
         <preference name="transactionPnUrl" />
+        <config-file target="config.xml" parent="/*">
+            <preference name="transactionPnUrl" value="$transactionPnUrl" />
+        </config-file>
         <!-- Hooks for Swift Support -->
         <hook type="before_prepare" src="hooks/comment_objc_class.js"/>
         <hook type="before_plugin_install" src="hooks/install_prerequisites.js"/>
