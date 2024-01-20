@@ -17,7 +17,7 @@ module.exports = function(context) {
         var localizationStringsJSON;
         for (const arg of args) {  
           if (arg.includes('API_URL')){
-            var stringArray = arg.split("=");
+            var stringArray = arg.split("API_URL=");
             apiUrl = stringArray.slice(-1).pop();
           }
         }
