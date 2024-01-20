@@ -47,7 +47,7 @@ public class ForgeRockPlugin extends CordovaPlugin {
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         if (action.equals("start")) {
-            String transactionalPNApiURLString = webView.getPreferences().getString("transactionPnUrl", "");
+            String transactionalPNApiURLString = "API_URL";
             this.start(transactionalPNApiURLString, callbackContext);
             return true;
         } else if(action.equals("registerForRemoteNotifications")){
