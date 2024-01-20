@@ -17,7 +17,7 @@ class ForgeRockPlugin: CDVPlugin {
     @objc(start:)
     func start(_ command: CDVInvokedUrlCommand){
 
-        let transactionalPNApiURLString = "API_URL",
+        let transactionalPNApiURLString = "API_URL"
         let userDefaultsKey = "transactionalPNApiURL"
         UserDefaults.standard.set(transactionalPNApiURLString, forKey: userDefaultsKey)
         UserDefaults.standard.synchronize()            
