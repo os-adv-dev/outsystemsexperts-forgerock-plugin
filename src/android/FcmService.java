@@ -131,8 +131,7 @@ public class FcmService extends FirebaseMessagingService {
                                                             createSystemNotification(pushNotification, finalCallbackMessage);
                                                         }
                                                     } catch (Exception e) {
-                                                        //TODO handle error
-                                                        //throw new RuntimeException(e);
+                                                        throw new RuntimeException(e);
                                                     }
                                                 } else {
 
@@ -184,57 +183,52 @@ public class FcmService extends FirebaseMessagingService {
                     }
                 }
             }
-
-
-        } catch (Exception e) {
-            //TODO handle error
-            //throw new RuntimeException(e);
-        }
-        if (!isTransactional) {
-            if (isSet) {
-                try {
-
-                    // If it's a valid Push message from AM and not expired, create a system notification
-                    if (pushNotification != null && !pushNotification.isExpired()) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            createNotificationChannel();
-                        }
-                        createSystemNotification(pushNotification, callbackMessage);
-                    }
-                } catch (Exception e) {
-                    //TODO handle error
-                    //throw new RuntimeException(e);
-                }
-            } else {
-
-                if (isAppInForeground()) {
-                    if (ForgeRockPlugin.instance != null) {
-                        ForgeRockPlugin.instance.handleNotification(message, inAppJsonObject);
-                    } else {
-                        //CALLBACK
-                    }
-                } else {
-                    // Save JSON string in SharedPreferences
-                    SharedPreferences.Editor editor = sharedPreferences.edit();
-                    Gson gson = new Gson();
-                    String json = gson.toJson(message);
-                    editor.putString("remoteMessage", json);
+            if (!isTransactional)  {
+                if (isSet) {
                     try {
-                        inAppJsonObject.put("successUrl", callbackMessage);
-                        inAppJsonObject.put("isTransaction", false);
-                    } catch (JSONException e) {
-                        //TODO handle error
+    
+                        // If it's a valid Push message from AM and not expired, create a system notification
+                        if (pushNotification != null && !pushNotification.isExpired()) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                createNotificationChannel();
+                            }
+                            createSystemNotification(pushNotification, callbackMessage);
+                        }
+                    } catch (Exception e) {
                         //throw new RuntimeException(e);
                     }
-                    editor.putString("inAppJsonObject", inAppJsonObject.toString());
-                    editor.putLong("messageTimestamp", System.currentTimeMillis());
-                    editor.putBoolean("launchedFromPush", true);
-                    editor.apply();
-
-                    String senderId = message.getFrom();
-                    showPushNotification(message, senderId, callbackMessage, false);
+                } else {
+    
+                    if (isAppInForeground()) {
+                        if (ForgeRockPlugin.instance != null) {
+                            ForgeRockPlugin.instance.handleNotification(message, inAppJsonObject);
+                        } else {
+                            //CALLBACK
+                        }
+                    } else {
+                        // Save JSON string in SharedPreferences
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                        Gson gson = new Gson();
+                        String json = gson.toJson(message);
+                        editor.putString("remoteMessage", json);
+                        try {
+                            inAppJsonObject.put("successUrl", callbackMessage);
+                            inAppJsonObject.put("isTransaction", false);
+                        } catch (JSONException e) {
+                            throw new RuntimeException(e);
+                        }
+                        editor.putString("inAppJsonObject", inAppJsonObject.toString());
+                        editor.putLong("messageTimestamp", System.currentTimeMillis());
+                        editor.putBoolean("launchedFromPush", true);
+                        editor.apply();
+    
+                        String senderId = message.getFrom();
+                        showPushNotification(message, senderId, callbackMessage, false);
+                    }
                 }
             }
+        } catch (Exception e) {
+            //throw new RuntimeException(e);
         }
     }
 
