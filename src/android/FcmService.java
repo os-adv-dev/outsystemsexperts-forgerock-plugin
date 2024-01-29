@@ -131,7 +131,8 @@ public class FcmService extends FirebaseMessagingService {
                                                             createSystemNotification(pushNotification, finalCallbackMessage);
                                                         }
                                                     } catch (Exception e) {
-                                                        throw new RuntimeException(e);
+                                                        //TODO handle error
+                                                        //throw new RuntimeException(e);
                                                     }
                                                 } else {
 
@@ -186,7 +187,8 @@ public class FcmService extends FirebaseMessagingService {
 
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            //TODO handle error
+            //throw new RuntimeException(e);
         }
         if (!isTransactional) {
             if (isSet) {
@@ -200,7 +202,8 @@ public class FcmService extends FirebaseMessagingService {
                         createSystemNotification(pushNotification, callbackMessage);
                     }
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    //TODO handle error
+                    //throw new RuntimeException(e);
                 }
             } else {
 
@@ -220,7 +223,8 @@ public class FcmService extends FirebaseMessagingService {
                         inAppJsonObject.put("successUrl", callbackMessage);
                         inAppJsonObject.put("isTransaction", false);
                     } catch (JSONException e) {
-                        throw new RuntimeException(e);
+                        //TODO handle error
+                        //throw new RuntimeException(e);
                     }
                     editor.putString("inAppJsonObject", inAppJsonObject.toString());
                     editor.putLong("messageTimestamp", System.currentTimeMillis());
