@@ -131,7 +131,8 @@ public class FcmService extends FirebaseMessagingService {
                                                             createSystemNotification(pushNotification, finalCallbackMessage);
                                                         }
                                                     } catch (Exception e) {
-                                                        throw new RuntimeException(e);
+                                                        //TODO Handle exception
+                                                        //throw new RuntimeException(e);
                                                     }
                                                 } else {
 
@@ -186,7 +187,7 @@ public class FcmService extends FirebaseMessagingService {
             if (!isTransactional)  {
                 if (isSet) {
                     try {
-    
+
                         // If it's a valid Push message from AM and not expired, create a system notification
                         if (pushNotification != null && !pushNotification.isExpired()) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -195,10 +196,11 @@ public class FcmService extends FirebaseMessagingService {
                             createSystemNotification(pushNotification, callbackMessage);
                         }
                     } catch (Exception e) {
+                        //TODO Handle exception
                         //throw new RuntimeException(e);
                     }
                 } else {
-    
+
                     if (isAppInForeground()) {
                         if (ForgeRockPlugin.instance != null) {
                             ForgeRockPlugin.instance.handleNotification(message, inAppJsonObject);
@@ -215,19 +217,21 @@ public class FcmService extends FirebaseMessagingService {
                             inAppJsonObject.put("successUrl", callbackMessage);
                             inAppJsonObject.put("isTransaction", false);
                         } catch (JSONException e) {
-                            throw new RuntimeException(e);
+                            //TODO Handle exception
+                            //throw new RuntimeException(e);
                         }
                         editor.putString("inAppJsonObject", inAppJsonObject.toString());
                         editor.putLong("messageTimestamp", System.currentTimeMillis());
                         editor.putBoolean("launchedFromPush", true);
                         editor.apply();
-    
+
                         String senderId = message.getFrom();
                         showPushNotification(message, senderId, callbackMessage, false);
                     }
                 }
             }
         } catch (Exception e) {
+            //TODO Handle exception
             //throw new RuntimeException(e);
         }
     }
