@@ -21,6 +21,8 @@ import com.outsystems.experts.forgerocksample.R;
 import org.forgerock.android.auth.FRAClient;
 import org.forgerock.android.auth.Mechanism;
 import org.forgerock.android.auth.PushNotification;
+import org.forgerock.android.auth.exception.AuthenticatorException;
+import org.forgerock.android.auth.exception.InvalidNotificationException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -43,6 +45,33 @@ public class FcmService extends FirebaseMessagingService {
     public FcmService() {}
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
+
+        if (message.getData().size() > 0) {
+            try {
+                fraClient = new FRAClient.FRAClientBuilder().withDeviceToken(this.getToken()).withContext(getApplicationContext()).start();
+                PushNotification pushNotification = fraClient.handleMessage(message);
+                handleCustomMessage(message, pushNotification);
+            } catch (InvalidNotificationException e) {
+                showDefaultNotification(message);
+            } catch (AuthenticatorException e) {
+                e.printStackTrace();
+            }
+        } else if (message != null){
+            showDefaultNotification(message);
+        }
+    }
+
+    public String parseJsonForObject(String key, String jsonString) {
+        try {
+            JSONObject jsonObject = new JSONObject(jsonString);
+            return jsonObject.getString(key);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void handleCustomMessage(RemoteMessage message, PushNotification pushNotification) {
         boolean isTransactional = false;
 
         // Check if setNativeNotification was saved in SharedPreferences
@@ -57,12 +86,8 @@ public class FcmService extends FirebaseMessagingService {
             callbackMessage = messageContent;
         }
 
-        PushNotification pushNotification;
         JSONObject inAppJsonObject = new JSONObject();
         try {
-            fraClient = new FRAClient.FRAClientBuilder().withDeviceToken(this.getToken()).withContext(getApplicationContext()).start();
-            System.out.println("✉️ Message: " + message);
-            pushNotification = fraClient.handleMessage(message);
             if (pushNotification != null) {
                 String customPayload = pushNotification.getCustomPayload();
                 JSONObject jsonObject = new JSONObject(customPayload);
@@ -131,8 +156,8 @@ public class FcmService extends FirebaseMessagingService {
                                                             createSystemNotification(pushNotification, finalCallbackMessage);
                                                         }
                                                     } catch (Exception e) {
-                                                        //TODO Handle exception
-                                                        //throw new RuntimeException(e);
+                                                        //nothing to do
+                                                        e.printStackTrace();
                                                     }
                                                 } else {
 
@@ -196,8 +221,8 @@ public class FcmService extends FirebaseMessagingService {
                             createSystemNotification(pushNotification, callbackMessage);
                         }
                     } catch (Exception e) {
-                        //TODO Handle exception
-                        //throw new RuntimeException(e);
+                        //nothing to do
+                        e.printStackTrace();
                     }
                 } else {
 
@@ -217,8 +242,8 @@ public class FcmService extends FirebaseMessagingService {
                             inAppJsonObject.put("successUrl", callbackMessage);
                             inAppJsonObject.put("isTransaction", false);
                         } catch (JSONException e) {
-                            //TODO Handle exception
-                            //throw new RuntimeException(e);
+                            //nothing to do
+                            e.printStackTrace();
                         }
                         editor.putString("inAppJsonObject", inAppJsonObject.toString());
                         editor.putLong("messageTimestamp", System.currentTimeMillis());
@@ -226,25 +251,47 @@ public class FcmService extends FirebaseMessagingService {
                         editor.apply();
 
                         String senderId = message.getFrom();
-                        showPushNotification(message, senderId, callbackMessage, false);
+                        showPushNotification(message, senderId, callbackMessage);
                     }
                 }
             }
         } catch (Exception e) {
-            //TODO Handle exception
-            //throw new RuntimeException(e);
+            //nothing to do
+            e.printStackTrace();
         }
     }
 
-    public String parseJsonForObject(String key, String jsonString) {
-        try {
-            JSONObject jsonObject = new JSONObject(jsonString);
-            return jsonObject.getString(key);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return null;
+    private void showDefaultNotification(RemoteMessage remoteMessage) {
+        String notificationTitle = remoteMessage.getNotification().getTitle();
+        String notificationBody = remoteMessage.getNotification().getBody();
+
+        // Create a notification builder.
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, "default_channel_id")
+                .setContentTitle(notificationTitle)
+                .setContentText(notificationBody)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setAutoCancel(true); // Dismiss the notification when clicked
+
+        // Get the notification manager system service.
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // Check if the SDK version is Oreo or higher.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Create a notification channel for Android Oreo and higher.
+            NotificationChannel channel = new NotificationChannel("default_channel_id",
+                    "Default Channel",
+                    NotificationManager.IMPORTANCE_DEFAULT);
+            // Configure the notification channel.
+            channel.setDescription("Default Notification Channel");
+            // Register the notification channel with the system.
+            notificationManager.createNotificationChannel(channel);
         }
+
+        // Build and display the notification.
+        notificationManager.notify(0, notificationBuilder.build());
     }
+
 
     public String extractMessageFromJWT(String jwtToken) {
         String[] parts = jwtToken.split("\\."); // Split the JWT into its parts
@@ -265,7 +312,7 @@ public class FcmService extends FirebaseMessagingService {
 
 
     // Method to show a Notification when the App is in the background or killed and In-App notification is set.
-    private void showPushNotification(RemoteMessage message, String senderId, String callbackMessage, boolean isTransactional) {
+    private void showPushNotification(RemoteMessage message, String senderId, String callbackMessage) {
 
         SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("_", Context.MODE_PRIVATE);
 
