@@ -180,7 +180,7 @@ public class FcmService extends FirebaseMessagingService {
                                                         editor.apply();
 
                                                         String senderId = message.getFrom();
-                                                        showPushNotification(message, senderId, finalCallbackMessage, true);
+                                                        showPushNotification(message, senderId, finalCallbackMessage);
                                                     }
                                                 }
 
