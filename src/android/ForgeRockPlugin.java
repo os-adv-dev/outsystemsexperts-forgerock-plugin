@@ -28,6 +28,9 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import android.os.Build;
+import androidx.core.content.ContextCompat;
+import androidx.core.app.ActivityCompat;
 
 /**
  * This class echoes a string called from JavaScript.
@@ -84,7 +87,7 @@ public class ForgeRockPlugin extends CordovaPlugin {
             return true;
         } else if (action.equals("requestPushNotificationPermission")) {
             this.permissionRequestCallbackContext = callbackContext;
-            this.requestPushNotificationPermission(callbackContext);
+            this.requestPushNotificationPermission();
             return true;
         } else if (action.equals("checkPushNotificationPermission")) {
             this.checkPushNotificationPermission(callbackContext);
