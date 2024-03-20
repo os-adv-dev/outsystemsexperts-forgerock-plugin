@@ -310,6 +310,38 @@ class ForgeRockPlugin: CDVPlugin {
         }
     }
 
+    @objc(requestPushNotificationPermission:)
+    func requestPushNotificationPermission(command: CDVInvokedUrlCommand) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            var pluginResult: CDVPluginResult
+            if let error = error {
+                pluginResult = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: error.localizedDescription)
+            } else {
+                if granted {
+                    DispatchQueue.main.async {
+                        UIApplication.shared.registerForRemoteNotifications()
+                    }
+                    pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: true)
+                } else {
+                    pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: false)
+                }
+            }
+            self.commandDelegate.send(pluginResult, callbackId: command.callbackId)
+        }
+    }
+
+    @objc(checkPushNotificationPermission:)
+    func checkPushNotificationPermission(command: CDVInvokedUrlCommand) {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            var pluginResult: CDVPluginResult
+            if settings.authorizationStatus == .authorized {
+                pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: true)
+            } else {
+                pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: false)
+            }
+            self.commandDelegate.send(pluginResult, callbackId: command.callbackId)
+        }
+    }    
     
     //MARK: Notification Center
     

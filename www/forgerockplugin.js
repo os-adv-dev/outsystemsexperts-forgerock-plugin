@@ -27,5 +27,11 @@ module.exports = {
     },
     removeAccount: function(account, success, error){
         exec(success, error, 'ForgeRockPlugin', 'removeAccount', [account]);
+    },
+    requestPushNotificationPermission: function(success, error){
+        exec(success, error, 'ForgeRockPlugin', 'requestPushNotificationPermission');
+    },
+    checkPushNotificationPermission: function(success, error){
+        exec(success, error, 'ForgeRockPlugin', 'checkPushNotificationPermission');
     }
 }

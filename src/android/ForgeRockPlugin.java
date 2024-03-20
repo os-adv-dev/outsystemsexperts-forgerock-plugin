@@ -38,6 +38,8 @@ public class ForgeRockPlugin extends CordovaPlugin {
     FRAClient fraClient;
     CallbackContext  didReceivePnCallbackContext;
 
+    private CallbackContext permissionRequestCallbackContext;
+    private static final int PERMISSION_REQUEST_CODE = 101;
     private static PushNotification notification;
     private static Mechanism mechanism;
 
@@ -79,6 +81,13 @@ public class ForgeRockPlugin extends CordovaPlugin {
         } else if(action.equals("removeAccount")){
             String userToBeRemoved = args.getString(0);
             this.removeAccount(userToBeRemoved,callbackContext);
+            return true;
+        } else if (action.equals("requestPushNotificationPermission")) {
+            this.permissionRequestCallbackContext = callbackContext;
+            this.requestPushNotificationPermission(callbackContext);
+            return true;
+        } else if (action.equals("checkPushNotificationPermission")) {
+            this.checkPushNotificationPermission(callbackContext);
             return true;
         }
 
@@ -399,6 +408,36 @@ public class ForgeRockPlugin extends CordovaPlugin {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Handle the received intent here
+        }
+    }
+
+    private void requestPushNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this.cordova.getActivity(), android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this.cordova.getActivity(), new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, PERMISSION_REQUEST_CODE);
+            } else {
+                permissionRequestCallbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, true));
+            }
+        } else {
+            permissionRequestCallbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, true));
+        }
+    }
+
+    private void checkPushNotificationPermission(CallbackContext callbackContext) {
+        boolean hasPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(this.cordova.getActivity(), android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, hasPermission));
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == PERMISSION_REQUEST_CODE && grantResults.length > 0) {
+            boolean granted = grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED;
+            PluginResult result = new PluginResult(PluginResult.Status.OK, granted);
+            if (permissionRequestCallbackContext != null) {
+                permissionRequestCallbackContext.sendPluginResult(result);
+                permissionRequestCallbackContext = null;
+            }
         }
     }
 }
