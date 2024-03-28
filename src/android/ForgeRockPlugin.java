@@ -13,6 +13,7 @@ import com.outsystems.experts.forgerocksample.MainActivity;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
+import org.forgerock.android.auth.Account;
 import org.forgerock.android.auth.FRAListener;
 import org.forgerock.android.auth.Mechanism;
 import org.forgerock.android.auth.OathMechanism;
