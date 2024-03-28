@@ -139,15 +139,31 @@ class ForgeRockPlugin: CDVPlugin {
        
     @objc(removeAccount:)
     func removeAccount (_ command: CDVInvokedUrlCommand){
+        
+        if let accounts = FRAClient.shared?.getAllAccounts(){
+            if (accounts.count > 0){
+                for account in accounts {
+                    FRAClient.shared?.removeAccount(account: account)
+                    print("User \(account.accountName) removed.")
+                    sendPluginResult(status: CDVCommandStatus_OK, message: "User \(account.accountName) removed.", callbackId: command.callbackId)
+                }
+            } else {
+                sendPluginResult(status: CDVCommandStatus_ERROR, message: "No accounts were found. Nothing to do.", callbackId: command.callbackId)
+            }
+        }
+        
+        //OLD CODE
+        /*
         if let userToBeRemoved = command.arguments[0] as? String {
         
-// Code proposed by ForgeRock that freezes the app
-//        if let accounts = FRAClient.shared?.getAllAccounts(){
-//            for account in accounts {
-//                FRAClient.shared?.removeAccount(account: account)
-//                print("User \(account.accountName) removed.")
-//            }
-//        }
+            //Code proposed by ForgeRock that freezes the app
+            if let accounts = FRAClient.shared?.getAllAccounts(){
+                for account in accounts {
+                    FRAClient.shared?.removeAccount(account: account)
+                    print("User \(account.accountName) removed.")
+                    sendPluginResult(status: CDVCommandStatus_OK, message: "User \(account.accountName) removed.", callbackId: command.callbackId)
+                }
+            }
             var mechanismToBeRemoved: Mechanism?
                 
             if let allNotifications = FRAClient.shared?.getAllNotifications(){
@@ -180,7 +196,7 @@ class ForgeRockPlugin: CDVPlugin {
             }
         } else {
             sendPluginResult(status: CDVCommandStatus_ERROR, message: "Error: Missing mandatory username attribute", callbackId: command.callbackId)
-        }
+        }*/
     }
     
     @objc(setNativeNotification:)
