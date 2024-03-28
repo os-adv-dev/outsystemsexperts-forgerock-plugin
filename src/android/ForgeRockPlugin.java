@@ -196,7 +196,17 @@ public class ForgeRockPlugin extends CordovaPlugin {
     }
 
     public void removeAccount(String userToBeRemoved, CallbackContext callbackContext){
-        if (userToBeRemoved != null && !userToBeRemoved.isEmpty()) {
+        if (fraClient.getAllAccounts().size() > 0) {
+            for (Account account : fraClient.getAllAccounts()) {
+                fraClient.removeAccount(account);
+                callbackContext.success("User " + account.getAccountName() + " removed");
+            }
+        } else {
+            callbackContext.error("No accounts were found. Nothing to do.");
+        }
+
+        //OLD CODE
+        /*if (userToBeRemoved != null && !userToBeRemoved.isEmpty()) {
             List<PushNotification> allNotifications = fraClient.getAllNotifications();
 
             if (allNotifications != null && !allNotifications.isEmpty()) {
@@ -225,7 +235,7 @@ public class ForgeRockPlugin extends CordovaPlugin {
             }
         } else {
             callbackContext.error("Error: Missing mandatory username attribute");
-        }
+        }*/
     }
 
 
