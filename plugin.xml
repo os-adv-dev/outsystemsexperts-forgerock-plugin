@@ -9,7 +9,7 @@
     <dependency id="com.outsystems.firebase.cloudmessaging" url="https://github.com/OutSystems/cordova-outsystems-firebase-cloud-messaging.git#2.3.0"/>
     <platform name="android">
         <hook type="before_plugin_install" src="hooks/android_set_api_url.js"/>
-        <hook type="before_compile" src="hooks/set_kotlin_version.js"/>
+        <!--<hook type="before_compile" src="hooks/set_kotlin_version.js"/>-->
         <!--<hook type="after_plugin_install" src="hooks/android_patch_mainactivity.js"/>-->
         <hook type="before_plugin_install" src="hooks/install_prerequisites.js"/>
         <hook type="after_plugin_install" src="hooks/android_adjust_package_name.js"/>
